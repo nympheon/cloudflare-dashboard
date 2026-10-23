@@ -1,0 +1,1017 @@
+{
+  "kind": "static-code-catalog",
+  "priceRulesCheckedAt": "2026-10-23",
+  "productCount": 30,
+  "metricCount": 81,
+  "rows": [
+    {
+      "id": "worker_standard_request",
+      "productId": "workers",
+      "label": "请求次数",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "10000000",
+      "pricing": {
+        "included": "10000000",
+        "rate": "0.30",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers/platform/pricing/"
+    },
+    {
+      "id": "worker_standard_cpu_ms",
+      "productId": "workers",
+      "label": "CPU 时间",
+      "unit": "ms",
+      "period": "billing_cycle",
+      "included": "30000000",
+      "pricing": {
+        "included": "30000000",
+        "rate": "0.02",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers/platform/pricing/"
+    },
+    {
+      "id": "worker_observability_events",
+      "productId": "workers",
+      "label": "Workers Logs 事件",
+      "unit": "条",
+      "period": "billing_cycle",
+      "included": "20000000",
+      "pricing": {
+        "included": "20000000",
+        "rate": "0.60",
+        "per": "1000000",
+        "effectiveUntil": "2026-12-01T00:00:00Z"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers/platform/pricing/"
+    },
+    {
+      "id": "worker_logpush_requests",
+      "productId": "workers",
+      "label": "Logpush 请求",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "10000000",
+      "pricing": {
+        "included": "10000000",
+        "rate": "0.05",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers/platform/pricing/"
+    },
+    {
+      "id": "worker_build_minute",
+      "productId": "builds",
+      "label": "构建分钟",
+      "unit": "分钟",
+      "period": "calendar_month",
+      "included": "6000",
+      "pricing": {
+        "included": "6000",
+        "rate": "0.005",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/"
+    },
+    {
+      "id": "d1_rows_read",
+      "productId": "d1",
+      "label": "读取行数",
+      "unit": "行",
+      "period": "billing_cycle",
+      "included": "25000000000",
+      "pricing": {
+        "included": "25000000000",
+        "rate": "0.001",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/d1/platform/pricing/"
+    },
+    {
+      "id": "d1_rows_written",
+      "productId": "d1",
+      "label": "写入行数",
+      "unit": "行",
+      "period": "billing_cycle",
+      "included": "50000000",
+      "pricing": {
+        "included": "50000000",
+        "rate": "1",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/d1/platform/pricing/"
+    },
+    {
+      "id": "d1_storage",
+      "productId": "d1",
+      "label": "存储计费量",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "5",
+      "pricing": {
+        "included": "5",
+        "rate": "0.75",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/d1/platform/pricing/"
+    },
+    {
+      "id": "d1_capacity",
+      "productId": "d1",
+      "label": "最近1小时存储峰值",
+      "unit": "GB",
+      "period": "instant",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/d1/platform/pricing/"
+    },
+    {
+      "id": "worker_kv_reads",
+      "productId": "kv",
+      "label": "读取次数",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "10000000",
+      "pricing": {
+        "included": "10000000",
+        "rate": "0.50",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/"
+    },
+    {
+      "id": "worker_kv_writes",
+      "productId": "kv",
+      "label": "写入次数",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "5",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/"
+    },
+    {
+      "id": "worker_kv_deletes",
+      "productId": "kv",
+      "label": "删除次数",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "5",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/"
+    },
+    {
+      "id": "worker_kv_lists",
+      "productId": "kv",
+      "label": "列表操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "5",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/"
+    },
+    {
+      "id": "worker_kv_storage",
+      "productId": "kv",
+      "label": "存储计费量",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "1",
+      "pricing": {
+        "included": "1",
+        "rate": "0.50",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/kv/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_requests",
+      "productId": "durable-objects",
+      "label": "请求次数",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "0.15",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_duration",
+      "productId": "durable-objects",
+      "label": "计算时长",
+      "unit": "GB-s",
+      "period": "billing_cycle",
+      "included": "400000",
+      "pricing": {
+        "included": "400000",
+        "rate": "12.50",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_sql_rows_read",
+      "productId": "durable-objects",
+      "label": "SQLite 读取行数",
+      "unit": "行",
+      "period": "billing_cycle",
+      "included": "25000000000",
+      "pricing": {
+        "included": "25000000000",
+        "rate": "0.001",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_sql_rows_written",
+      "productId": "durable-objects",
+      "label": "SQLite 写入行数",
+      "unit": "行",
+      "period": "billing_cycle",
+      "included": "50000000",
+      "pricing": {
+        "included": "50000000",
+        "rate": "1",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_sql_storage",
+      "productId": "durable-objects",
+      "label": "SQLite 存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "5",
+      "pricing": {
+        "included": "5",
+        "rate": "0.20",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_storage_reads",
+      "productId": "durable-objects",
+      "label": "KV 后端读取",
+      "unit": "单位",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "0.20",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_storage_writes",
+      "productId": "durable-objects",
+      "label": "KV 后端写入",
+      "unit": "单位",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "1",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_storage_deletes",
+      "productId": "durable-objects",
+      "label": "KV 后端删除",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "1",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "worker_durable_objects_stored_data",
+      "productId": "durable-objects",
+      "label": "KV 后端存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "1",
+      "pricing": {
+        "included": "1",
+        "rate": "0.20",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
+    },
+    {
+      "id": "r2_storage",
+      "productId": "r2",
+      "label": "Standard 存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "10",
+      "pricing": {
+        "included": "10",
+        "rate": "0.015",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_class_a_operations",
+      "productId": "r2",
+      "label": "Standard A 类操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "4.50",
+        "per": "1000000",
+        "roundUp": true
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_class_b_operations",
+      "productId": "r2",
+      "label": "Standard B 类操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "10000000",
+      "pricing": {
+        "included": "10000000",
+        "rate": "0.36",
+        "per": "1000000",
+        "roundUp": true
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_ia_storage",
+      "productId": "r2",
+      "label": "IA 存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "0",
+      "pricing": {
+        "included": "0",
+        "rate": "0.01",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_ia_class_a_operations",
+      "productId": "r2",
+      "label": "IA A 类操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "0",
+      "pricing": {
+        "included": "0",
+        "rate": "9",
+        "per": "1000000",
+        "roundUp": true
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_ia_class_b_operations",
+      "productId": "r2",
+      "label": "IA B 类操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "0",
+      "pricing": {
+        "included": "0",
+        "rate": "0.90",
+        "per": "1000000",
+        "roundUp": true
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_ia_data_retrieval",
+      "productId": "r2",
+      "label": "IA 数据取回",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "included": "0",
+      "pricing": {
+        "included": "0",
+        "rate": "0.01",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_capacity",
+      "productId": "r2",
+      "label": "当前存储容量",
+      "unit": "GB",
+      "period": "instant",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_data_catalog_operations",
+      "productId": "r2",
+      "label": "Basin Catalog 操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "9",
+        "per": "1000000",
+        "roundUp": true
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_data_catalog_bytes_processed",
+      "productId": "r2",
+      "label": "Catalog 压缩处理",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "included": "10",
+      "pricing": {
+        "included": "10",
+        "rate": "0.005",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2_data_catalog_objects_processed",
+      "productId": "r2",
+      "label": "Catalog 对象处理",
+      "unit": "个",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "2",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "r2sql_bytes_read",
+      "productId": "r2",
+      "label": "Basin SQL 扫描",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "included": "10",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "queues_standard_operations",
+      "productId": "queues",
+      "label": "消息操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "1000000",
+      "pricing": {
+        "included": "1000000",
+        "rate": "0.40",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/queues/platform/pricing/"
+    },
+    {
+      "id": "workflows_steps",
+      "productId": "workflows",
+      "label": "执行步骤",
+      "unit": "步",
+      "period": "billing_cycle",
+      "included": "500000",
+      "pricing": {
+        "included": "500000",
+        "rate": "0.80",
+        "per": "100000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workflows/reference/pricing/"
+    },
+    {
+      "id": "workflows_storage",
+      "productId": "workflows",
+      "label": "持久化存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "included": "1",
+      "pricing": {
+        "included": "1",
+        "rate": "0.20",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workflows/reference/pricing/"
+    },
+    {
+      "id": "workflows_requests",
+      "productId": "workflows",
+      "label": "调用次数（共享 Workers）",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workflows/reference/pricing/"
+    },
+    {
+      "id": "cloudchamber_vcpu_usage",
+      "productId": "containers",
+      "label": "活跃 CPU",
+      "unit": "vCPU-s",
+      "period": "billing_cycle",
+      "included": "22500",
+      "pricing": {
+        "included": "22500",
+        "rate": "0.00002",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/containers/platform/pricing/"
+    },
+    {
+      "id": "cloudchamber_memory_usage",
+      "productId": "containers",
+      "label": "分配内存",
+      "unit": "GiB-s",
+      "period": "billing_cycle",
+      "included": "90000",
+      "pricing": {
+        "included": "90000",
+        "rate": "0.0000025",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/containers/platform/pricing/"
+    },
+    {
+      "id": "cloudchamber_disk_usage",
+      "productId": "containers",
+      "label": "分配磁盘",
+      "unit": "GB-s",
+      "period": "billing_cycle",
+      "included": "720000",
+      "pricing": {
+        "included": "720000",
+        "rate": "0.00000007",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/containers/platform/pricing/"
+    },
+    {
+      "id": "container_egress_namer_eu",
+      "productId": "containers",
+      "label": "北美 / 欧洲流出",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/containers/platform/pricing/"
+    },
+    {
+      "id": "container_egress_oc_taiwan_korea",
+      "productId": "containers",
+      "label": "大洋洲 / 台湾 / 韩国流出",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/containers/platform/pricing/"
+    },
+    {
+      "id": "container_egress_all_other",
+      "productId": "containers",
+      "label": "其他区域流出",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/containers/platform/pricing/"
+    },
+    {
+      "id": "hyperdrive_queries",
+      "productId": "hyperdrive",
+      "label": "数据库查询",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/hyperdrive/platform/pricing/"
+    },
+    {
+      "id": "vectorize_queried_dimensions",
+      "productId": "vectorize",
+      "label": "查询维度",
+      "unit": "维度",
+      "period": "billing_cycle",
+      "included": "50000000",
+      "pricing": {
+        "included": "50000000",
+        "rate": "0.01",
+        "per": "1000000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/vectorize/platform/pricing/"
+    },
+    {
+      "id": "vectorize_stored_dimensions",
+      "productId": "vectorize",
+      "label": "存储维度",
+      "unit": "维度",
+      "period": "instant",
+      "included": "10000000",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/vectorize/platform/pricing/"
+    },
+    {
+      "id": "pipelines_sink_json",
+      "productId": "pipelines",
+      "label": "JSON 写入",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/pipelines/pricing/"
+    },
+    {
+      "id": "pipelines_sink_parquet_iceberg",
+      "productId": "pipelines",
+      "label": "Parquet / Iceberg 写入",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/pipelines/pricing/"
+    },
+    {
+      "id": "pipelines_sql_transforms",
+      "productId": "pipelines",
+      "label": "SQL 转换",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/pipelines/pricing/"
+    },
+    {
+      "id": "analytics_data_points",
+      "productId": "analytics-engine",
+      "label": "写入数据点",
+      "unit": "点",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/analytics/analytics-engine/pricing/"
+    },
+    {
+      "id": "analytics_queries",
+      "productId": "analytics-engine",
+      "label": "读取查询",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/analytics/analytics-engine/pricing/"
+    },
+    {
+      "id": "secrets_count",
+      "productId": "secrets",
+      "label": "密钥数量",
+      "unit": "个",
+      "period": "instant",
+      "included": "100",
+      "hardLimit": true,
+      "source": "https://developers.cloudflare.com/secrets-store/platform/limits/"
+    },
+    {
+      "id": "artifacts_operations",
+      "productId": "artifacts",
+      "label": "仓库操作",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/artifacts/platform/pricing/"
+    },
+    {
+      "id": "artifacts_storage",
+      "productId": "artifacts",
+      "label": "仓库存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/artifacts/platform/pricing/"
+    },
+    {
+      "id": "dynamic_workers_count",
+      "productId": "dynamic-workers",
+      "label": "动态 Worker 日累计",
+      "unit": "个·日",
+      "period": "billing_cycle",
+      "included": "1000",
+      "pricing": {
+        "included": "1000",
+        "rate": "0.002",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/dynamic-workers/pricing/"
+    },
+    {
+      "id": "platforms_subscription",
+      "productId": "platforms",
+      "label": "平台固定订阅",
+      "unit": "USD",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/"
+    },
+    {
+      "id": "workers_ai_neurons",
+      "productId": "workers-ai",
+      "label": "神经元用量",
+      "unit": "neurons",
+      "period": "day",
+      "included": "10000",
+      "pricing": {
+        "included": "10000",
+        "rate": "0.011",
+        "per": "1000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers-ai/platform/pricing/"
+    },
+    {
+      "id": "workers_ai_model_cost",
+      "productId": "workers-ai",
+      "label": "按模型计费用量",
+      "unit": "USD",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/workers-ai/platform/pricing/"
+    },
+    {
+      "id": "ai_search_queries",
+      "productId": "ai-search",
+      "label": "语义查询",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/ai-search/platform/pricing/"
+    },
+    {
+      "id": "ai_gateway_requests",
+      "productId": "ai-gateway",
+      "label": "网关请求",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/ai-gateway/reference/pricing/"
+    },
+    {
+      "id": "browser_rendering_total_browser_hours",
+      "productId": "browser",
+      "label": "浏览器运行",
+      "unit": "小时",
+      "period": "billing_cycle",
+      "included": "10",
+      "pricing": {
+        "included": "10",
+        "rate": "0.09",
+        "per": "1"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/browser-rendering/pricing/"
+    },
+    {
+      "id": "browser_rendering_avg_concurrent_browsers",
+      "productId": "browser",
+      "label": "月平均并发浏览器",
+      "unit": "个",
+      "period": "billing_cycle",
+      "included": "10",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/browser-rendering/pricing/"
+    },
+    {
+      "id": "web_search_requests",
+      "productId": "web-search",
+      "label": "搜索请求",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/web-search/pricing/"
+    },
+    {
+      "id": "email_sent",
+      "productId": "email",
+      "label": "发送邮件",
+      "unit": "封",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/email-service/pricing/"
+    },
+    {
+      "id": "images_storage_per_hundred_thousand",
+      "productId": "images",
+      "label": "托管图片数量",
+      "unit": "张",
+      "period": "instant",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/images/pricing/"
+    },
+    {
+      "id": "image_unique_transformations",
+      "productId": "images",
+      "label": "唯一转换量",
+      "unit": "次",
+      "period": "calendar_month",
+      "included": "5000",
+      "pricing": {
+        "included": "5000",
+        "rate": "0.50",
+        "per": "1000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/images/pricing/"
+    },
+    {
+      "id": "image_delivered_per_hundred_thousand",
+      "productId": "images",
+      "label": "托管图片分发",
+      "unit": "次",
+      "period": "billing_cycle",
+      "included": "0",
+      "pricing": {
+        "included": "0",
+        "rate": "1",
+        "per": "100000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/images/pricing/"
+    },
+    {
+      "id": "stream_storage_thousand_minutes",
+      "productId": "stream",
+      "label": "存储视频时长",
+      "unit": "分钟",
+      "period": "instant",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/stream/pricing/"
+    },
+    {
+      "id": "stream_viewed_thousand_minutes",
+      "productId": "stream",
+      "label": "播放时长",
+      "unit": "分钟",
+      "period": "billing_cycle",
+      "included": "0",
+      "pricing": {
+        "included": "0",
+        "rate": "1",
+        "per": "1000"
+      },
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/stream/pricing/"
+    },
+    {
+      "id": "realtime_minutes",
+      "productId": "realtime",
+      "label": "实时音视频",
+      "unit": "分钟",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/realtime/pricing/"
+    },
+    {
+      "id": "turn_egress",
+      "productId": "realtime",
+      "label": "TURN 流出流量",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/realtime/pricing/"
+    },
+    {
+      "id": "argo_bytes",
+      "productId": "network",
+      "label": "Argo Smart Routing",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/plans/"
+    },
+    {
+      "id": "cache_reserve_storage",
+      "productId": "network",
+      "label": "Cache Reserve 存储",
+      "unit": "GB-month",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/plans/"
+    },
+    {
+      "id": "load_balancing_queries",
+      "productId": "network",
+      "label": "负载均衡查询",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/plans/"
+    },
+    {
+      "id": "spectrum_bytes",
+      "productId": "network",
+      "label": "Spectrum 流量",
+      "unit": "GB",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/plans/"
+    },
+    {
+      "id": "zaraz_loads",
+      "productId": "network",
+      "label": "Zaraz 加载",
+      "unit": "次",
+      "period": "billing_cycle",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/plans/"
+    },
+    {
+      "id": "zero_trust_seats",
+      "productId": "zero-trust",
+      "label": "当前使用席位",
+      "unit": "席",
+      "period": "instant",
+      "hardLimit": true,
+      "source": "https://developers.cloudflare.com/cloudflare-one/team-and-resources/"
+    },
+    {
+      "id": "registrar_domains",
+      "productId": "registrar",
+      "label": "注册域名数量",
+      "unit": "个",
+      "period": "instant",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/registrar/"
+    },
+    {
+      "id": "subscription_count",
+      "productId": "subscriptions",
+      "label": "有效订阅",
+      "unit": "项",
+      "period": "instant",
+      "hardLimit": false,
+      "source": "https://developers.cloudflare.com/billing/"
+    }
+  ]
+}
