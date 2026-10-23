@@ -197,7 +197,7 @@ export function Settings() {
             <ScanSearch size={22} />
           </span>
           <h2>重新核查指标来源</h2>
-          <p>主动检查来源能力。普通刷新遇到临时失败时，指标清单仍会保留。</p>
+          <p>仅展示已有数据的指标。读取临时失败时，保留同周期的上次成功数据。</p>
         </div>
         <Button
           variant="outline"
@@ -216,7 +216,7 @@ export function Settings() {
         </div>
         <div>
           <span>02</span>
-          <p>使用只读权限，无需提升监控 Token 的写权限。缺少权限和网络故障会明确显示。</p>
+          <p>使用只读权限，无需写权限。无法取得数据的指标会隐藏，恢复读取后自动显示。</p>
         </div>
         <div>
           <span>03</span>

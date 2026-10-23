@@ -16,6 +16,7 @@ import { mergeMetric } from './metrics/state';
 import { costParts } from './billing/calculate';
 import { arr, obj } from './cloudflare/json';
 import { ReadSources } from './cloudflare/sources';
+import { isMetricVisible } from '../shared/visibility';
 
 export async function refreshDashboard(
   reason: RefreshReason,
@@ -112,11 +113,15 @@ async function performRefresh(
   ]);
   for (const results of analytics) Object.assign(observations, results);
   Object.assign(observations, account);
+  const unmatched = Object.entries(billing).filter(([id]) => id.startsWith('billing_'));
+  const blockedProducts = new Set(unmatched.map(([, value]) => value.productId));
+  if (unmatched.length)
+    warnings.push('部分账单项目尚未匹配到用量指标；已计入报告金额，并暂停可能重叠的费用估算。');
   for (const [id, value] of Object.entries(billing)) {
     if (!definitions.some((d) => d.id === id))
       definitions.push({
         id,
-        productId: 'subscriptions',
+        productId: value.productId ?? 'subscriptions',
         label: value.name,
         unit: value.unit || 'Count',
         period: 'billing_cycle',
@@ -124,8 +129,7 @@ async function performRefresh(
       });
     const def = definitions.find((d) => d.id === id)!;
     const old = observations[id];
-    const isLive =
-      old?.coverage === 'complete' && (old.status === 'ok' || old.status === 'no_records');
+    const isLive = old?.coverage === 'complete' && old.status === 'ok' && old.usage !== null;
     observations[id] = {
       ...(isLive
         ? old
@@ -159,6 +163,8 @@ async function performRefresh(
       source: definition.source,
       message: '已登记此计费维度；可靠用量或单位来源待核实',
     };
+    if (blockedProducts.has(undefined) || blockedProducts.has(definition.productId))
+      current.estimationBlocked = true;
     const view = mergeMetric(
       definition,
       previous?.account.id === settings.account.id ? previous.metrics[definition.id] : undefined,
@@ -166,6 +172,14 @@ async function performRefresh(
     );
     if (settings.capabilities[definition.id])
       view.capability = settings.capabilities[definition.id];
+    view.capability = {
+      ...view.capability,
+      visibility: isMetricVisible(view) ? 'visible' : 'excluded',
+      reason: isMetricVisible(view)
+        ? '已取得用量、账单或同周期上次数据'
+        : '尚无可靠用量，已从产品页面隐藏',
+      checkedAt: at,
+    };
     views[definition.id] = view;
     if (
       definition.period === 'instant' ||

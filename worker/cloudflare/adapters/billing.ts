@@ -4,6 +4,7 @@ import type { Subscription } from '../../../shared/dashboard';
 const aliases: Array<[RegExp, string]> = [
   [/Workers CPU ms/i, 'worker_standard_cpu_ms'],
   [/Workers.*(?:Standard.*Requests|Requests.*Standard)/i, 'worker_standard_request'],
+  [/^Workers Standard(?:\s*\([^)]*\))?$/i, 'worker_standard_request'],
   [/D1.*Rows Read/i, 'd1_rows_read'],
   [/D1.*Rows Writ/i, 'd1_rows_written'],
   [/D1.*Storage/i, 'd1_storage'],
@@ -43,7 +44,29 @@ export interface BillableAggregate {
   unit: string;
   name: string;
   currency: string;
+  productId?: string;
 }
+const billingProducts: Record<string, string> = {
+  workers: 'workers',
+  d1: 'd1',
+  r2: 'r2',
+  kv: 'kv',
+  'workers kv': 'kv',
+  'durable objects': 'durable-objects',
+  'browser rendering': 'browser',
+  'browser run': 'browser',
+  containers: 'containers',
+  queues: 'queues',
+  workflows: 'workflows',
+  vectorize: 'vectorize',
+  images: 'images',
+  stream: 'stream',
+  pipelines: 'pipelines',
+  artifacts: 'artifacts',
+  'email service': 'email',
+  realtime: 'realtime',
+  zaraz: 'network',
+};
 export function aggregateBillable(
   rows: Json[],
   cycleStart: string,
@@ -75,6 +98,7 @@ export function aggregateBillable(
       unit: text(r.ConsumedUnit) || text(r.PricingUnit),
       name,
       currency: text(r.BillingCurrency),
+      productId: billingProducts[text(r.ServiceFamilyName).toLowerCase()],
     };
   }
   return out;

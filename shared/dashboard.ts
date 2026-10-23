@@ -14,6 +14,7 @@ export interface PricingRule {
   rate: string;
   per: string;
   roundUp?: boolean;
+  roundNearest?: boolean;
   hardLimit?: boolean;
   sharedWith?: string;
   note?: string;
@@ -61,6 +62,7 @@ export interface Observation {
   chargeCoverage?: Coverage;
   chargeThrough?: string;
   estimated?: boolean;
+  estimationBlocked?: boolean;
   rangeStart?: string;
 }
 export interface MetricView {

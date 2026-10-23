@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, Info } from 'lucide-react';
 import { products } from '../../shared/catalog';
+import { visibleMetrics } from '../../shared/visibility';
 import { useDashboard } from '../app/DashboardProvider';
 import { MetricPanel } from '../components/quota/MetricPanel';
 import { ProductIcon } from '../components/layout/ProductIcon';
@@ -16,8 +17,8 @@ export function Product() {
         <Link to="/">返回总览</Link>
       </div>
     );
-  const views = Object.values(snapshot?.metrics ?? {}).filter(
-    (v) => v.definition.productId === product.id && v.capability.visibility === 'visible',
+  const views = visibleMetrics(snapshot?.metrics ?? {}).filter(
+    (v) => v.definition.productId === product.id,
   );
   return (
     <>
@@ -105,10 +106,14 @@ export function Product() {
         </>
       ) : (
         <div className="connect-panel">
-          <h2>等待连接账户</h2>
-          <p>保存 Token 并刷新后，这里会显示产品的独立计量指标。</p>
-          <Link to="/settings" className="text-link">
-            配置 Token
+          <h2>{snapshot ? '此产品暂无可显示的用量' : '等待连接账户'}</h2>
+          <p>
+            {snapshot
+              ? '获取到可靠数据后，产品会自动出现在用量列表中。'
+              : '保存 Token 并刷新后，这里会显示产品的独立计量指标。'}
+          </p>
+          <Link to={snapshot ? '/' : '/settings'} className="text-link">
+            {snapshot ? '返回总览' : '配置 Token'}
             <ArrowUpRight size={15} />
           </Link>
         </div>

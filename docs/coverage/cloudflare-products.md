@@ -2,7 +2,7 @@
 
 此表由 shared/catalog.ts 的通用代码定义生成，不包含真实账户用量、状态、资源、订阅、Token 或采集时刻。额外计量由使用者的订阅在运行时发现；基础目录不构成完整账单覆盖承诺。
 
-基础产品入口 30 个，基础指标 81 项。机器可读定义见 [catalog.json](catalog.json)。
+支持 30 个产品、81 项基础指标；页面仅显示已有可靠数据的指标和产品入口。机器可读定义见 [catalog.json](catalog.json)。
 
 | 产品 | 指标 ID / 名称 | 单位 / 周期 | 默认包含额度 | 参考来源 |
 |---|---|---|---|---|
@@ -48,20 +48,20 @@
 | containers | cloudchamber_vcpu_usage / 活跃 CPU | vCPU-s / billing_cycle | 22500 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
 | containers | cloudchamber_memory_usage / 分配内存 | GiB-s / billing_cycle | 90000 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
 | containers | cloudchamber_disk_usage / 分配磁盘 | GB-s / billing_cycle | 720000 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
-| containers | container_egress_namer_eu / 北美 / 欧洲流出 | GB / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
-| containers | container_egress_oc_taiwan_korea / 大洋洲 / 台湾 / 韩国流出 | GB / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
-| containers | container_egress_all_other / 其他区域流出 | GB / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
+| containers | container_egress_namer_eu / 北美 / 欧洲流出 | GB / billing_cycle | 1000 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
+| containers | container_egress_oc_taiwan_korea / 大洋洲 / 台湾 / 韩国流出 | GB / billing_cycle | 500 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
+| containers | container_egress_all_other / 其他区域流出 | GB / billing_cycle | 500 | [官方文档](https://developers.cloudflare.com/containers/platform/pricing/) |
 | hyperdrive | hyperdrive_queries / 数据库查询 | 次 / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/hyperdrive/platform/pricing/) |
 | vectorize | vectorize_queried_dimensions / 查询维度 | 维度 / billing_cycle | 50000000 | [官方文档](https://developers.cloudflare.com/vectorize/platform/pricing/) |
 | vectorize | vectorize_stored_dimensions / 存储维度 | 维度 / instant | 10000000 | [官方文档](https://developers.cloudflare.com/vectorize/platform/pricing/) |
 | pipelines | pipelines_sink_json / JSON 写入 | GB / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/pipelines/pricing/) |
 | pipelines | pipelines_sink_parquet_iceberg / Parquet / Iceberg 写入 | GB / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/pipelines/pricing/) |
-| pipelines | pipelines_sql_transforms / SQL 转换 | GB / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/pipelines/pricing/) |
+| pipelines | pipelines_sql_transforms / SQL 转换 | GB / billing_cycle | 50 | [官方文档](https://developers.cloudflare.com/pipelines/pricing/) |
 | analytics-engine | analytics_data_points / 写入数据点 | 点 / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/analytics/analytics-engine/pricing/) |
 | analytics-engine | analytics_queries / 读取查询 | 次 / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/analytics/analytics-engine/pricing/) |
 | secrets | secrets_count / 密钥数量 | 个 / instant | 100 | [官方文档](https://developers.cloudflare.com/secrets-store/platform/limits/) |
-| artifacts | artifacts_operations / 仓库操作 | 次 / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/artifacts/platform/pricing/) |
-| artifacts | artifacts_storage / 仓库存储 | GB-month / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/artifacts/platform/pricing/) |
+| artifacts | artifacts_operations / 仓库操作 | 次 / billing_cycle | 10000 | [官方文档](https://developers.cloudflare.com/artifacts/platform/pricing/) |
+| artifacts | artifacts_storage / 仓库存储 | GB-month / billing_cycle | 1 | [官方文档](https://developers.cloudflare.com/artifacts/platform/pricing/) |
 | dynamic-workers | dynamic_workers_count / 动态 Worker 日累计 | 个·日 / billing_cycle | 1000 | [官方文档](https://developers.cloudflare.com/dynamic-workers/pricing/) |
 | platforms | platforms_subscription / 平台固定订阅 | USD / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/platform/pricing/) |
 | workers-ai | workers_ai_neurons / 神经元用量 | neurons / day | 10000 | [官方文档](https://developers.cloudflare.com/workers-ai/platform/pricing/) |
@@ -71,7 +71,7 @@
 | browser | browser_rendering_total_browser_hours / 浏览器运行 | 小时 / billing_cycle | 10 | [官方文档](https://developers.cloudflare.com/browser-rendering/pricing/) |
 | browser | browser_rendering_avg_concurrent_browsers / 月平均并发浏览器 | 个 / billing_cycle | 10 | [官方文档](https://developers.cloudflare.com/browser-rendering/pricing/) |
 | web-search | web_search_requests / 搜索请求 | 次 / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/web-search/pricing/) |
-| email | email_sent / 发送邮件 | 封 / billing_cycle | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/email-service/pricing/) |
+| email | email_sent / 付费发送邮件 | 封 / billing_cycle | 3000 | [官方文档](https://developers.cloudflare.com/email-service/pricing/) |
 | images | images_storage_per_hundred_thousand / 托管图片数量 | 张 / instant | 未核实或不适用 | [官方文档](https://developers.cloudflare.com/images/pricing/) |
 | images | image_unique_transformations / 唯一转换量 | 次 / calendar_month | 5000 | [官方文档](https://developers.cloudflare.com/images/pricing/) |
 | images | image_delivered_per_hundred_thousand / 托管图片分发 | 次 / billing_cycle | 0 | [官方文档](https://developers.cloudflare.com/images/pricing/) |

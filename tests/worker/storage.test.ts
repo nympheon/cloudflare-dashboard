@@ -26,6 +26,77 @@ beforeEach(async () => {
     await env.DB.prepare(statement).run();
 });
 describe('encrypted settings and revision gates in D1', () => {
+  it.each([
+    ['Workers Standard', false],
+    ['Workers Standard Requests (first 10M are included)', false],
+    ['Workers Future Meter', false],
+    ['Workers Standard', true],
+  ] as const)(
+    'merges reported Workers charge %s (empty analytics: %s)',
+    async (serviceName, emptyAnalytics) => {
+      const repo = new Repository(env.DB);
+      await saveCredential(repo, 'user', fixtureToken, env.TOKEN_ENCRYPTION_KEY, transport);
+      vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = String(input);
+        if (path.includes('/graphql')) {
+          const query = JSON.parse(String(init?.body)).query as string;
+          const name = query.match(/(\w+)\(limit:/)?.[1] ?? '';
+          return Response.json({
+            data: {
+              viewer: {
+                accounts: [
+                  {
+                    [name]:
+                      name === 'workersInvocationsAdaptive' && !emptyAnalytics
+                        ? [{ sum: { requests: '12500000', cpuTimeUs: '0' } }]
+                        : [],
+                  },
+                ],
+              },
+            },
+            errors: null,
+          });
+        }
+        const result = path.includes('/subscriptions')
+          ? [
+              {
+                id: 'monthly',
+                rate_plan: { id: 'workers_paid', public_name: 'Workers Paid' },
+                price: 5,
+                currency: 'USD',
+                frequency: 'monthly',
+                state: 'Paid',
+                current_period_start: '2026-10-15T00:00:00Z',
+                current_period_end: '2026-11-15T00:00:00Z',
+              },
+            ]
+          : path.includes('/billable-usage')
+            ? [
+                {
+                  ServiceName: serviceName,
+                  ServiceFamilyName: 'Workers',
+                  BillingPeriodStart: '2026-10-15T00:00:00Z',
+                  ChargePeriodEnd: '2026-10-23T00:00:00Z',
+                  ConsumedQuantity: '12500000',
+                  ConsumedUnit: 'Count',
+                  BilledCost: '0.75',
+                  BillingCurrency: 'USD',
+                },
+              ]
+            : [];
+        return Response.json({ success: true, result, result_info: { total_pages: 1 } });
+      });
+      try {
+        const next = await refreshDashboard('manual', env);
+        expect(next.costs.reported).toBe('0.75');
+        expect(next.costs.estimated).toBe('0');
+        if (serviceName !== 'Workers Future Meter')
+          expect(next.metrics.worker_standard_request.current.usage).toBe('12500000');
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
   it('saves two tokens independently and never returns plaintext', async () => {
     const repo = new Repository(env.DB);
     await saveCredential(repo, 'account', fixtureToken, env.TOKEN_ENCRYPTION_KEY, transport);

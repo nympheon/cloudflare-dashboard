@@ -6,8 +6,15 @@ export function mergeMetric(
   current: Observation,
 ): MetricView {
   const successful =
-    current.status === 'ok' && current.coverage === 'complete' && current.usage !== null;
+    (current.status === 'ok' || current.status === 'partial') &&
+    current.coverage !== 'unverified' &&
+    current.usage !== null;
   const previousSuccess =
+    // An invalidated billing mapping must not reappear after a later network error.
+    !(
+      current.status === 'partial' &&
+      (current.coverage === 'unverified' || current.usage === null)
+    ) &&
     previous?.lastSuccess &&
     samePeriod(previous.lastSuccess.period, current.period) &&
     (current.period.kind === 'instant' || previous.lastSuccess.rangeStart === current.rangeStart)

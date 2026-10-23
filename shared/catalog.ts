@@ -519,9 +519,16 @@ const rows: Row[] = [
     '0.00000007',
     '1',
   ],
-  ['container_egress_namer_eu', 'containers', '北美 / 欧洲流出', 'GB', 'billing_cycle', undefined],
-  ['container_egress_oc_taiwan_korea', 'containers', '大洋洲 / 台湾 / 韩国流出', 'GB'],
-  ['container_egress_all_other', 'containers', '其他区域流出', 'GB'],
+  ['container_egress_namer_eu', 'containers', '北美 / 欧洲流出', 'GB', 'billing_cycle', '1000'],
+  [
+    'container_egress_oc_taiwan_korea',
+    'containers',
+    '大洋洲 / 台湾 / 韩国流出',
+    'GB',
+    'billing_cycle',
+    '500',
+  ],
+  ['container_egress_all_other', 'containers', '其他区域流出', 'GB', 'billing_cycle', '500'],
   [
     'hyperdrive_queries',
     'hyperdrive',
@@ -546,7 +553,7 @@ const rows: Row[] = [
   ['vectorize_stored_dimensions', 'vectorize', '存储维度', '维度', 'instant', '10000000'],
   ['pipelines_sink_json', 'pipelines', 'JSON 写入', 'GB'],
   ['pipelines_sink_parquet_iceberg', 'pipelines', 'Parquet / Iceberg 写入', 'GB'],
-  ['pipelines_sql_transforms', 'pipelines', 'SQL 转换', 'GB'],
+  ['pipelines_sql_transforms', 'pipelines', 'SQL 转换', 'GB', 'billing_cycle', '50'],
   ['analytics_data_points', 'analytics-engine', '写入数据点', '点'],
   ['analytics_queries', 'analytics-engine', '读取查询', '次'],
   ['secrets_count', 'secrets', '密钥数量', '个', 'instant', '100'],
@@ -556,12 +563,12 @@ const rows: Row[] = [
     '仓库操作',
     '次',
     'billing_cycle',
-    undefined,
+    '10000',
     undefined,
     undefined,
     '不把 namespace_list 管理事件当成计费操作',
   ],
-  ['artifacts_storage', 'artifacts', '仓库存储', 'GB-month'],
+  ['artifacts_storage', 'artifacts', '仓库存储', 'GB-month', 'billing_cycle', '1'],
   [
     'dynamic_workers_count',
     'dynamic-workers',
@@ -609,7 +616,7 @@ const rows: Row[] = [
     '月平均并发不是瞬时最大并发',
   ],
   ['web_search_requests', 'web-search', '搜索请求', '次'],
-  ['email_sent', 'email', '发送邮件', '封'],
+  ['email_sent', 'email', '付费发送邮件', '封', 'billing_cycle', '3000'],
   ['images_storage_per_hundred_thousand', 'images', '托管图片数量', '张', 'instant', undefined],
   [
     'image_unique_transformations',
@@ -644,7 +651,17 @@ const rows: Row[] = [
     '1000',
   ],
   ['realtime_minutes', 'realtime', '实时音视频', '分钟'],
-  ['turn_egress', 'realtime', 'TURN 流出流量', 'GB'],
+  [
+    'turn_egress',
+    'realtime',
+    'TURN 流出流量',
+    'GB',
+    'billing_cycle',
+    undefined,
+    undefined,
+    undefined,
+    'SFU、TURN 与 WebSocket adapter 共用每月 1,000 GB；单项流量不代表共享额度剩余量',
+  ],
   ['argo_bytes', 'network', 'Argo Smart Routing', 'GB'],
   ['cache_reserve_storage', 'network', 'Cache Reserve 存储', 'GB-month'],
   ['load_balancing_queries', 'network', '负载均衡查询', '次'],
@@ -669,6 +686,18 @@ export const metrics: MetricDefinition[] = rows.map(
     const pricing: PricingRule | undefined =
       included !== undefined && rate && per ? { included, rate, per } : undefined;
     if (pricing && id.startsWith('r2_') && id.includes('operations')) pricing.roundUp = true;
+    if (
+      pricing &&
+      [
+        'worker_durable_objects_requests',
+        'worker_durable_objects_duration',
+        'r2_storage',
+        'r2_ia_storage',
+        'r2_ia_data_retrieval',
+      ].includes(id)
+    )
+      pricing.roundUp = true;
+    if (pricing && id === 'browser_rendering_total_browser_hours') pricing.roundNearest = true;
     if (pricing && id === 'worker_observability_events')
       pricing.effectiveUntil = '2026-12-01T00:00:00Z';
     return {

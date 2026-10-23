@@ -31,6 +31,7 @@ export function meterCost(metric: Observation, rule: PricingRule): string | null
   if (rule.effectiveUntil && new Date(metric.at) >= new Date(rule.effectiveUntil)) return null;
   if (
     metric.usage === null ||
+    metric.estimationBlocked ||
     metric.coverage !== 'complete' ||
     metric.status !== 'ok' ||
     rule.hardLimit ||
@@ -38,7 +39,14 @@ export function meterCost(metric: Observation, rule: PricingRule): string | null
     rule.sharedWith
   )
     return null;
-  const units = Decimal.max(0, new Decimal(metric.usage).minus(rule.included)).div(rule.per);
+  // Browser Run rounds the accumulated billing-cycle hours, never each session/day.
+  const usage = rule.roundNearest
+    ? new Decimal(metric.usage)
+        .div(rule.per)
+        .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+        .mul(rule.per)
+    : new Decimal(metric.usage);
+  const units = Decimal.max(0, usage.minus(rule.included)).div(rule.per);
   return (rule.roundUp ? units.ceil() : units).mul(rule.rate).toString();
 }
 export function costParts(

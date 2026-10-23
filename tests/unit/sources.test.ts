@@ -8,6 +8,8 @@ import { ReadSources } from '../../worker/cloudflare/sources';
 import { collectDataset, datasets } from '../../worker/cloudflare/adapters/analytics';
 import { metrics } from '../../shared/catalog';
 import { collectAccount } from '../../worker/cloudflare/adapters/account';
+import { mergeMetric } from '../../worker/metrics/state';
+import { isMetricVisible } from '../../shared/visibility';
 describe('read-only source validation', () => {
   it('rejects GraphQL errors, malformed empty REST lists and mutations', async () => {
     const client = new CloudflareReadClient('fixture', async () =>
@@ -79,8 +81,178 @@ describe('billing sources', () => {
     );
     expect(aggregateBillable([row], '2026-11-15T00:00:00.000Z')).toEqual({});
   });
+  it('matches the documented Workers Standard name to the existing request meter', () => {
+    const result = aggregateBillable(
+      [
+        {
+          ...row,
+          ServiceName: 'Workers Standard',
+          ServiceFamilyName: 'Workers',
+          ConsumedUnit: 'Count',
+          ConsumedQuantity: '12500000',
+          BilledCost: '0.75',
+        },
+      ],
+      row.BillingPeriodStart,
+    );
+    expect(Object.keys(result)).toEqual(['worker_standard_request']);
+    expect(result.worker_standard_request.cost).toBe('0.75');
+  });
 });
 describe('operation and discovery semantics', () => {
+  it('hides a previously accepted R2 estimate when new operations invalidate its billing mapping', async () => {
+    const dataset = datasets.find((d) => d.ids.includes('r2_class_a_operations'))!;
+    const client = new CloudflareReadClient('fixture', async () =>
+      Response.json({
+        data: {
+          viewer: {
+            accounts: [
+              {
+                [dataset.name]: [
+                  {
+                    dimensions: { actionType: 'UnknownOperation', storageClass: 'Standard' },
+                    sum: { requests: '10' },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        errors: null,
+      }),
+    );
+    const r = await collectDataset(
+      dataset,
+      {
+        accountId: 'a'.repeat(32),
+        clients: { account: client },
+        now: new Date('2026-10-23T08:00:00Z'),
+        cycle: { start: '2026-10-15T00:00:00Z', end: '2026-11-15T00:00:00Z' },
+      },
+      metrics,
+    );
+    const def = metrics.find((m) => m.id === 'r2_class_a_operations')!;
+    const current = r[def.id];
+    const old = mergeMetric(def, undefined, {
+      ...current,
+      usage: '12',
+      status: 'ok',
+      coverage: 'complete',
+    });
+    const unverified = mergeMetric(def, old, current);
+    expect(isMetricVisible(unverified)).toBe(false);
+    expect(isMetricVisible(mergeMetric(def, unverified, { ...current, status: 'error' }))).toBe(
+      false,
+    );
+  });
+  it('does not infer IA storage charges from a zero capacity peak because minimum duration charges can remain', async () => {
+    const dataset = datasets.find((d) => d.ids.includes('r2_ia_storage'))!;
+    const client = new CloudflareReadClient('fixture', async () =>
+      Response.json({
+        data: {
+          viewer: {
+            accounts: [{ [dataset.name]: [{ max: { payloadSize: '0', metadataSize: '0' } }] }],
+          },
+        },
+        errors: null,
+      }),
+    );
+    const r = await collectDataset(
+      dataset,
+      {
+        accountId: 'a'.repeat(32),
+        clients: { account: client },
+        now: new Date('2026-10-23T08:00:00Z'),
+        cycle: { start: '2026-10-15T00:00:00Z', end: '2026-11-15T00:00:00Z' },
+      },
+      metrics,
+    );
+    expect(r.r2_storage.usage).toBe('0');
+    expect(r.r2_ia_storage.status).toBe('partial');
+    expect(r.r2_ia_storage.usage).toBeNull();
+  });
+  it.each([
+    'pipelines_sql_transforms',
+    'email_sent',
+    'analytics_data_points',
+    'r2_data_catalog_bytes_processed',
+  ])('does not expose raw events as the billable %s meter', async (id) => {
+    const dataset = datasets.find((d) => d.ids.includes(id))!;
+    const client = new CloudflareReadClient('fixture', async () =>
+      Response.json({
+        data: {
+          viewer: {
+            accounts: [
+              {
+                [dataset.name]: [
+                  {
+                    count: '20',
+                    sum: { bytesIn: '2000000000', inputBytes: '2000000000', filesProcessed: '4' },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        errors: null,
+      }),
+    );
+    const r = await collectDataset(
+      dataset,
+      {
+        accountId: 'a'.repeat(32),
+        clients: { account: client },
+        now: new Date('2026-10-23T08:00:00Z'),
+        cycle: { start: '2026-10-15T00:00:00Z', end: '2026-11-15T00:00:00Z' },
+      },
+      metrics,
+    );
+    expect(r[id].status).toBe('partial');
+    expect(r[id].usage).toBeNull();
+  });
+  it('does not treat unnormalized DO invocation analytics as billing requests', async () => {
+    const dataset = datasets.find((d) => d.ids.includes('worker_durable_objects_requests'))!;
+    const client = new CloudflareReadClient('fixture', async () =>
+      Response.json({
+        data: { viewer: { accounts: [{ [dataset.name]: [{ sum: { requests: '2000000' } }] }] } },
+        errors: null,
+      }),
+    );
+    const r = await collectDataset(
+      dataset,
+      {
+        accountId: 'a'.repeat(32),
+        clients: { account: client },
+        now: new Date('2026-10-23T08:00:00Z'),
+        cycle: { start: '2026-10-15T00:00:00Z', end: '2026-11-15T00:00:00Z' },
+      },
+      metrics,
+    );
+    expect(r.worker_durable_objects_requests.status).toBe('partial');
+    expect(r.worker_durable_objects_requests.usage).toBeNull();
+  });
+  it('does not certify an empty dataset as a verified billing meter when its mapping is unverified', async () => {
+    const dataset = datasets.find((d) => d.ids.includes('artifacts_storage'))!;
+    const client = new CloudflareReadClient('fixture', async () =>
+      Response.json({
+        data: { viewer: { accounts: [{ [dataset.name]: [] }] } },
+        errors: null,
+      }),
+    );
+    const r = await collectDataset(
+      dataset,
+      {
+        accountId: 'a'.repeat(32),
+        clients: { account: client },
+        now: new Date('2026-10-23T08:00:00Z'),
+        cycle: { start: '2026-10-15T00:00:00Z', end: '2026-11-15T00:00:00Z' },
+      },
+      metrics,
+    );
+    expect(r.artifacts_storage.status).toBe('partial');
+    expect(r.artifacts_storage.coverage).toBe('partial');
+    expect(r.artifacts_storage.usage).toBeNull();
+  });
   it('counts actual Zero Trust seat flags instead of all user records', async () => {
     const client = new CloudflareReadClient('fixture', async (input) => {
       const url = String(input);

@@ -12,6 +12,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { products } from '../../shared/catalog';
+import { visibleMetrics, visibleProducts, isMetricVisible } from '../../shared/visibility';
 import { useDashboard } from '../app/DashboardProvider';
 import {
   date,
@@ -61,14 +62,19 @@ export function Overview() {
         </div>
       </>
     );
-  const all = Object.values(snapshot.metrics).filter((v) => v.capability.visibility === 'visible');
+  const all = visibleMetrics(snapshot.metrics);
+  const availableProducts = visibleProducts(products, snapshot.metrics);
+  const groups = ['Workers Paid', 'AI 与媒体', '网络与订阅'].filter((g) =>
+    availableProducts.some((p) => p.group === g),
+  );
+  const activeGroup = groups.includes(group) ? group : groups[0];
   const attention = all.filter((v) =>
     ['warning', 'danger', 'exceeded'].includes(quotaFor(v).level),
   );
   const errors = all.filter((v) => v.current.status === 'error');
   const cores = ['worker_standard_request', 'worker_standard_cpu_ms', 'd1_rows_written']
     .map((id) => snapshot.metrics[id])
-    .filter(Boolean)
+    .filter((v) => v && isMetricVisible(v))
     .map((v) => ({
       ...v,
       definition: {
@@ -130,7 +136,7 @@ export function Overview() {
             {all.length}
             <em>项</em>
           </strong>
-          <small>{products.length} 个产品与服务</small>
+          <small>{availableProducts.length} 个产品与服务</small>
         </div>
         <div>
           <span>
@@ -162,25 +168,27 @@ export function Overview() {
       ) : null}
       <div className="overview-columns">
         <div className="overview-main">
-          <section className="panel core-panel">
-            <div className="section-heading">
-              <div>
-                <h2>核心资源额度</h2>
-                <p>当前用量与包含额度，一目了然</p>
+          {cores.length ? (
+            <section className="panel core-panel">
+              <div className="section-heading">
+                <div>
+                  <h2>核心资源额度</h2>
+                  <p>当前用量与包含额度，一目了然</p>
+                </div>
+                <span className="section-hint">按指标独立计量</span>
               </div>
-              <span className="section-hint">按指标独立计量</span>
-            </div>
-            <div className="core-metrics">
-              {cores.map((v, i) => (
-                <MetricPanel
-                  key={v.id}
-                  view={v}
-                  color={['#f38020', '#18a38c', '#388bea'][i]}
-                  compactMode
-                />
-              ))}
-            </div>
-          </section>
+              <div className="core-metrics">
+                {cores.map((v, i) => (
+                  <MetricPanel
+                    key={v.id}
+                    view={v}
+                    color={['#f38020', '#18a38c', '#388bea'][i]}
+                    compactMode
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
           <section className="panel products-panel">
             <div className="section-heading">
               <div>
@@ -189,15 +197,15 @@ export function Overview() {
               </div>
             </div>
             <div className="product-tabs" role="group" aria-label="产品分类">
-              {['Workers Paid', 'AI 与媒体', '网络与订阅'].map((g) => (
-                <button aria-pressed={group === g} key={g} onClick={() => setGroup(g)}>
+              {groups.map((g) => (
+                <button aria-pressed={activeGroup === g} key={g} onClick={() => setGroup(g)}>
                   {g}
                 </button>
               ))}
             </div>
             <div className="product-list">
-              {products
-                .filter((p) => p.group === group)
+              {availableProducts
+                .filter((p) => p.group === activeGroup)
                 .map((p) => {
                   const meters = all.filter((v) => v.definition.productId === p.id),
                     primary = meters.find((v) => quotaFor(v).percent !== null) ?? meters[0],
@@ -251,6 +259,9 @@ export function Overview() {
                     </Link>
                   );
                 })}
+              {!availableProducts.length ? (
+                <p className="panel-description">当前没有可显示的用量，请检查连接后刷新。</p>
+              ) : null}
             </div>
           </section>
         </div>
@@ -301,10 +312,7 @@ export function Overview() {
             </div>
             <div className="cost-note">
               <CircleAlert size={15} />
-              <span>
-                {snapshot.costs.unpriced}{' '}
-                项计费范围待核实。合计不代表最终账单，税费、折扣与未计价项未包含。
-              </span>
+              <span>费用仅涵盖已取得的数据。合计不代表最终账单，税费、折扣与未计价项未包含。</span>
             </div>
             <a
               className="text-link"

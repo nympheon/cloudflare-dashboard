@@ -2,7 +2,7 @@ import Decimal from 'decimal.js';
 import type { MetricDefinition, Observation, TokenKind } from '../../../shared/dashboard';
 import { CloudflareReadClient, SourceError } from '../client';
 import { obj, arr, numeric, text, type Json } from '../json';
-import { mapR2Operations } from './storage';
+import { mapR2Operations, UnverifiedR2Usage } from './storage';
 import { periodFor, collectionStart } from '../../metrics/periods';
 import { ReadSources } from '../sources';
 export interface AnalyticsContext {
@@ -61,7 +61,10 @@ export const datasets: Dataset[] = [
     name: 'durableObjectsInvocationsAdaptiveGroups',
     ids: ['worker_durable_objects_requests'],
     select: 'sum { requests }',
-    fields: { worker_durable_objects_requests: ['sum.requests'] },
+    // Hibernating messages are included here, ordinary WebSocket messages are in
+    // periodic groups. Analytics does not apply the billing-only 20:1 ratio.
+    // Until invocation types can be classified reliably, use billable-usage.
+    partial: '调用统计尚未按 WebSocket 计费比例核算；请求用量采用账单来源',
   },
   {
     name: 'durableObjectsPeriodicGroups',
@@ -142,7 +145,7 @@ export const datasets: Dataset[] = [
       'r2_ia_class_b_operations',
       'r2_ia_data_retrieval',
     ],
-    select: 'sum { requests } dimensions { actionType storageClass }',
+    select: 'sum { requests } dimensions { actionType storageClass responseStatusCode }',
     map: mapR2Operations,
   },
   {
@@ -163,9 +166,11 @@ export const datasets: Dataset[] = [
     select: 'max { payloadSize metadataSize }',
     map: (rows): Record<string, string> =>
       new Decimal(sum(rows, 'max.payloadSize')).plus(sum(rows, 'max.metadataSize')).eq(0)
-        ? { r2_storage: '0', r2_ia_storage: '0' }
+        ? { r2_storage: '0' }
         : {},
-    partialFor: {},
+    partialFor: {
+      r2_ia_storage: 'IA 有最短存储时长费用，容量为零仍不能证明账期费用为零；采用账单来源',
+    },
   },
   {
     name: 'workflowsAdaptiveGroups',
@@ -273,11 +278,7 @@ export const datasets: Dataset[] = [
     ids: ['r2_data_catalog_bytes_processed', 'r2_data_catalog_objects_processed'],
     select: 'sum { inputBytes filesProcessed }',
     retention: 32,
-    fields: {
-      r2_data_catalog_bytes_processed: ['sum.inputBytes', '1000000000'],
-      r2_data_catalog_objects_processed: ['sum.filesProcessed'],
-    },
-    partial: '需核对已计费的成功自动压缩作业，暂不对所有维护事件估价',
+    partial: '维护事件尚未筛选已计费的成功自动压缩作业；采用账单来源',
   },
   {
     name: 'r2sqlOperationsAdaptiveGroups',
@@ -291,7 +292,7 @@ export const datasets: Dataset[] = [
     ids: ['pipelines_sql_transforms'],
     select: 'sum { bytesIn }',
     retention: 32,
-    fields: { pipelines_sql_transforms: ['sum.bytesIn', '1000000000'] },
+    partial: '该来源仅返回摄入字节，未区分免费入口与 SQL 转换计费量；采用账单来源',
   },
   {
     name: 'callsTurnUsageAdaptiveGroups',
@@ -357,7 +358,6 @@ export const datasets: Dataset[] = [
     ids: ['analytics_data_points'],
     select: 'count',
     retention: 31,
-    fields: { analytics_data_points: ['count'] },
     partial: '该统计记录数尚不能直接证明计费写入数据点总量',
   },
   {
@@ -392,7 +392,7 @@ export const datasets: Dataset[] = [
     ids: ['email_sent'],
     select: 'count',
     retention: 31,
-    fields: { email_sent: ['count'] },
+    partial: '邮件事件尚未排除入站、拒收及发送到已验证地址的免费邮件；采用账单来源',
   },
   {
     name: 'streamMinutesViewedAdaptiveGroups',
@@ -497,15 +497,8 @@ export async function collectDataset(
       dataset.ids.map((id) => {
         const def = definitions.find((x) => x.id === id)!;
         const partialMessage = dataset.partialFor?.[id] ?? dataset.partial;
-        const partial =
-          truncated || (rows.length > 0 && (Boolean(partialMessage) || mapped[id] === undefined));
-        const status = truncated
-          ? 'partial'
-          : rows.length === 0
-            ? 'no_records'
-            : partial
-              ? 'partial'
-              : 'ok';
+        const partial = truncated || Boolean(partialMessage) || mapped[id] === undefined;
+        const status = partial ? 'partial' : rows.length === 0 ? 'no_records' : 'ok';
         return [
           id,
           {
@@ -533,7 +526,7 @@ export async function collectDataset(
       dataset.ids.map((id) => [
         id,
         base(
-          'error',
+          e instanceof UnverifiedR2Usage ? 'partial' : 'error',
           e instanceof SourceError ? e.message : e instanceof Error ? e.message : '统计读取失败',
         ),
       ]),

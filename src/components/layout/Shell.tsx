@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { products } from '../../../shared/catalog';
+import { visibleProducts } from '../../../shared/visibility';
 import { useDashboard } from '../../app/DashboardProvider';
 import { Button } from '../ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
@@ -33,6 +34,7 @@ export function Shell() {
   const [open, setOpen] = useState(false);
   const { snapshot, settings, refreshing, refresh, error, demo } = useDashboard();
   const location = useLocation();
+  const availableProducts = visibleProducts(products, snapshot?.metrics ?? {});
   const nav = (
     <>
       <Brand />
@@ -41,19 +43,21 @@ export function Shell() {
           <LayoutDashboard size={18} />
           <span>使用总览</span>
         </NavLink>
-        {(['Workers Paid', 'AI 与媒体', '网络与订阅'] as const).map((group) => (
-          <div className="nav-group" key={group}>
-            <p>{group}</p>
-            {products
-              .filter((p) => p.group === group)
-              .map((p) => (
-                <NavLink key={p.id} to={'/products/' + p.id} onClick={() => setOpen(false)}>
-                  <ProductIcon product={p} small />
-                  <span>{p.name}</span>
-                </NavLink>
-              ))}
-          </div>
-        ))}
+        {(['Workers Paid', 'AI 与媒体', '网络与订阅'] as const)
+          .filter((group) => availableProducts.some((p) => p.group === group))
+          .map((group) => (
+            <div className="nav-group" key={group}>
+              <p>{group}</p>
+              {availableProducts
+                .filter((p) => p.group === group)
+                .map((p) => (
+                  <NavLink key={p.id} to={'/products/' + p.id} onClick={() => setOpen(false)}>
+                    <ProductIcon product={p} small />
+                    <span>{p.name}</span>
+                  </NavLink>
+                ))}
+            </div>
+          ))}
       </nav>
       <div className="nav-footer">
         <NavLink to="/settings" onClick={() => setOpen(false)}>

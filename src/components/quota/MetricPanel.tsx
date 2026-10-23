@@ -115,6 +115,7 @@ export function MetricPanel({
             <p className="pricing-note">
               超出后 ${d.pricing.rate} / {compact(d.pricing.per)} {d.unit}
               {d.pricing.roundUp ? '（向上进位）' : ''}
+              {d.pricing.roundNearest ? '（账期累计时长四舍五入）' : ''}
             </p>
           ) : null}
         </>

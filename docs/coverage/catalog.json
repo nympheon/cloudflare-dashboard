@@ -219,7 +219,8 @@
       "pricing": {
         "included": "1000000",
         "rate": "0.15",
-        "per": "1000000"
+        "per": "1000000",
+        "roundUp": true
       },
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
@@ -234,7 +235,8 @@
       "pricing": {
         "included": "400000",
         "rate": "12.50",
-        "per": "1000000"
+        "per": "1000000",
+        "roundUp": true
       },
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/durable-objects/platform/pricing/"
@@ -354,7 +356,8 @@
       "pricing": {
         "included": "10",
         "rate": "0.015",
-        "per": "1"
+        "per": "1",
+        "roundUp": true
       },
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/r2/pricing/"
@@ -401,7 +404,8 @@
       "pricing": {
         "included": "0",
         "rate": "0.01",
-        "per": "1"
+        "per": "1",
+        "roundUp": true
       },
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/r2/pricing/"
@@ -448,7 +452,8 @@
       "pricing": {
         "included": "0",
         "rate": "0.01",
-        "per": "1"
+        "per": "1",
+        "roundUp": true
       },
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/r2/pricing/"
@@ -623,6 +628,7 @@
       "label": "北美 / 欧洲流出",
       "unit": "GB",
       "period": "billing_cycle",
+      "included": "1000",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/containers/platform/pricing/"
     },
@@ -632,6 +638,7 @@
       "label": "大洋洲 / 台湾 / 韩国流出",
       "unit": "GB",
       "period": "billing_cycle",
+      "included": "500",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/containers/platform/pricing/"
     },
@@ -641,6 +648,7 @@
       "label": "其他区域流出",
       "unit": "GB",
       "period": "billing_cycle",
+      "included": "500",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/containers/platform/pricing/"
     },
@@ -702,6 +710,7 @@
       "label": "SQL 转换",
       "unit": "GB",
       "period": "billing_cycle",
+      "included": "50",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/pipelines/pricing/"
     },
@@ -739,6 +748,7 @@
       "label": "仓库操作",
       "unit": "次",
       "period": "billing_cycle",
+      "included": "10000",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/artifacts/platform/pricing/"
     },
@@ -748,6 +758,7 @@
       "label": "仓库存储",
       "unit": "GB-month",
       "period": "billing_cycle",
+      "included": "1",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/artifacts/platform/pricing/"
     },
@@ -827,7 +838,8 @@
       "pricing": {
         "included": "10",
         "rate": "0.09",
-        "per": "1"
+        "per": "1",
+        "roundNearest": true
       },
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/browser-rendering/pricing/"
@@ -854,9 +866,10 @@
     {
       "id": "email_sent",
       "productId": "email",
-      "label": "发送邮件",
+      "label": "付费发送邮件",
       "unit": "封",
       "period": "billing_cycle",
+      "included": "3000",
       "hardLimit": false,
       "source": "https://developers.cloudflare.com/email-service/pricing/"
     },
