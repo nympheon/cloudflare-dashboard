@@ -62,7 +62,8 @@ export function Shell() {
         </NavLink>
         <div className="local-status">
           <span className="status-dot" />
-          本地预览 <span>尚未部署</span>
+          {import.meta.env.DEV ? '本地预览' : '云端服务'}
+          <span>{import.meta.env.DEV ? '尚未部署' : '运行中'}</span>
         </div>
       </div>
     </>
