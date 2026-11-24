@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -12,22 +12,117 @@ import {
   Layers,
 } from 'lucide-react';
 import { products } from '../../shared/catalog';
-import { visibleMetrics, visibleProducts, isMetricVisible } from '../../shared/visibility';
+import { visibleMetrics, visibleProducts } from '../../shared/visibility';
+import type { MetricView, Product, QuotaDisplay } from '../../shared/dashboard';
 import { useDashboard } from '../app/DashboardProvider';
 import {
   date,
+  dateTime,
   money,
   compact,
   quotaFor,
   displayObservation,
   statusLabel,
   addAmounts,
+  billingCycleDays,
+  percentage,
+  periodLabel,
 } from '../lib/format';
 import { MetricPanel } from '../components/quota/MetricPanel';
+import { AnimatedValue } from '../components/quota/AnimatedValue';
 import { ProductIcon } from '../components/layout/ProductIcon';
 import { Button } from '../components/ui/button';
+
+const featuredMetricIds = [
+  'worker_standard_request',
+  'worker_standard_cpu_ms',
+  'd1_rows_written',
+  'd1_rows_read',
+  'r2_class_a_operations',
+  'queues_standard_operations',
+  'worker_kv_reads',
+  'worker_durable_objects_requests',
+];
+const productsById = new Map(products.map((product) => [product.id, product]));
+const risk = { normal: 0, unknown: 0, warning: 1, danger: 2, exceeded: 3 };
+type Reading = { view: MetricView; quota: QuotaDisplay };
+
+function ProductReading({
+  product,
+  meters,
+  index,
+}: {
+  product: Product;
+  meters: Reading[];
+  index: number;
+}) {
+  const firstWithUsage = meters.find(({ view }) => displayObservation(view).usage !== null);
+  const primary = meters.reduce(
+    (best, reading) =>
+      Number(reading.quota.percent ?? -1) > Number(best?.quota.percent ?? -1) ? reading : best,
+    firstWithUsage ?? meters[0],
+  );
+  const observation = primary && displayObservation(primary.view);
+  const definition = primary?.view.definition;
+  const quota = primary?.quota;
+  const percent = quota?.percent ?? null;
+  const exceeded = Number(quota?.excess ?? 0) > 0;
+  const balance = (exceeded ? quota?.excess : quota?.remaining) ?? null;
+  const status = primary ? statusLabel(primary.view, quota?.level) : '等待获取';
+  const displayStatus = primary?.view.current.status === 'error' || balance === null;
+  return (
+    <Link
+      className="product-row"
+      to={'/products/' + product.id}
+      style={{ '--row-delay': `${Math.min(index, 8) * 26}ms` } as CSSProperties}
+    >
+      <ProductIcon product={product} />
+      <div className="product-name">
+        <strong>{product.name}</strong>
+        <small>
+          {product.description} · {meters.length} 项
+        </small>
+      </div>
+      <div className="product-reading" data-level={quota?.level}>
+        <strong>
+          <AnimatedValue
+            value={percent === null ? compact(observation?.usage) : percentage(percent)}
+          />
+          {percent === null && observation?.usage != null ? (
+            <span className="product-reading-unit">{definition?.unit}</span>
+          ) : null}
+        </strong>
+        <small>
+          {definition && observation
+            ? `${definition.label} · ${periodLabel[observation.period.kind]}`
+            : status}
+        </small>
+        {percent !== null && definition && observation ? (
+          <small className="product-usage-amount">
+            <AnimatedValue
+              value={`${compact(observation.usage)} / ${compact(observation.included ?? definition.included)} ${definition.unit}`}
+            />
+          </small>
+        ) : null}
+      </div>
+      <div className="product-remaining">
+        {balance === null ? null : (
+          <>
+            <small>{exceeded ? '超出' : '剩余'}</small>
+            <strong>
+              <AnimatedValue value={compact(balance)} /> {definition?.unit}
+            </strong>
+          </>
+        )}
+        {displayStatus ? <small className="product-reading-status">{status}</small> : null}
+      </div>
+      <ChevronRight size={16} />
+    </Link>
+  );
+}
+
 export function Overview() {
-  const { snapshot, settings, loading, demo } = useDashboard(),
+  const { snapshot, settings, loading } = useDashboard(),
     [group, setGroup] = useState('Workers Paid');
   if (!snapshot)
     return (
@@ -63,25 +158,42 @@ export function Overview() {
       </>
     );
   const all = visibleMetrics(snapshot.metrics);
+  const readings = all.map((view): Reading => ({ view, quota: quotaFor(view) }));
+  const readingsById = new Map(readings.map((entry) => [entry.view.id, entry]));
+  const readingsByProduct = new Map<string, Reading[]>();
+  for (const entry of readings) {
+    const id = entry.view.definition.productId;
+    const list = readingsByProduct.get(id);
+    if (list) list.push(entry);
+    else readingsByProduct.set(id, [entry]);
+  }
   const availableProducts = visibleProducts(products, snapshot.metrics);
   const groups = ['Workers Paid', 'AI 与媒体', '网络与订阅'].filter((g) =>
     availableProducts.some((p) => p.group === g),
   );
   const activeGroup = groups.includes(group) ? group : groups[0];
-  const attention = all.filter((v) =>
-    ['warning', 'danger', 'exceeded'].includes(quotaFor(v).level),
-  );
-  const errors = all.filter((v) => v.current.status === 'error');
-  const cores = ['worker_standard_request', 'worker_standard_cpu_ms', 'd1_rows_written']
-    .map((id) => snapshot.metrics[id])
-    .filter((v) => v && isMetricVisible(v))
-    .map((v) => ({
-      ...v,
-      definition: {
-        ...v.definition,
-        label: (v.definition.productId === 'd1' ? 'D1 ' : 'Workers ') + v.definition.label,
-      },
-    }));
+  const attention = readings
+    .filter(({ quota }) => risk[quota.level] > 0)
+    .sort(
+      (a, b) =>
+        risk[b.quota.level] - risk[a.quota.level] ||
+        Number(b.quota.percent) - Number(a.quota.percent),
+    )
+    .map(({ view }) => view);
+  const featured = featuredMetricIds.flatMap((id) => {
+    const entry = readingsById.get(id);
+    return entry && displayObservation(entry.view).usage !== null ? [entry.view] : [];
+  });
+  const cores = Array.from(
+    new Set([
+      ...attention,
+      ...featured,
+      ...readings.filter(({ quota }) => quota.percent !== null).map(({ view }) => view),
+    ]),
+  ).slice(0, 6);
+  const errors = all.filter((v) => v.current.status === 'error').length;
+  const activeProducts = availableProducts.filter((product) => product.group === activeGroup);
+  const cycle = billingCycleDays(snapshot.billingPeriod, snapshot.attemptedAt);
   return (
     <>
       <div className="page-heading">
@@ -109,6 +221,19 @@ export function Overview() {
             {date(snapshot.billingPeriod.start)} — {date(snapshot.billingPeriod.end)}
           </strong>
         </span>
+        {cycle ? (
+          <span className="cycle-countdown">
+            <span>
+              第 {cycle.current} / {cycle.total} 天
+            </span>
+            <span>
+              距账期结束{' '}
+              <strong>
+                <AnimatedValue value={`${cycle.remaining} 天`} />
+              </strong>
+            </span>
+          </span>
+        ) : null}
       </div>
       <section className="summary-strip" aria-label="账户摘要">
         <div>
@@ -116,7 +241,9 @@ export function Overview() {
             <Wallet size={15} />
             固定订阅费
           </span>
-          <strong>{money(snapshot.costs.fixed)}</strong>
+          <strong>
+            <AnimatedValue value={money(snapshot.costs.fixed)} />
+          </strong>
           <small>同一订阅账期</small>
         </div>
         <div>
@@ -124,7 +251,11 @@ export function Overview() {
             <Activity size={15} />
             已知用量费用
           </span>
-          <strong>{money(addAmounts(snapshot.costs.reported, snapshot.costs.estimated))}</strong>
+          <strong>
+            <AnimatedValue
+              value={money(addAmounts(snapshot.costs.reported, snapshot.costs.estimated))}
+            />
+          </strong>
           <small>{snapshot.costs.complete ? '已覆盖计价项' : '部分覆盖 · 含估算'}</small>
         </div>
         <div>
@@ -133,7 +264,7 @@ export function Overview() {
             可见指标
           </span>
           <strong>
-            {all.length}
+            <AnimatedValue value={all.length} />
             <em>项</em>
           </strong>
           <small>{availableProducts.length} 个产品与服务</small>
@@ -144,10 +275,10 @@ export function Overview() {
             额度预警
           </span>
           <strong className={attention.length ? 'text-orange' : ''}>
-            {attention.length}
+            <AnimatedValue value={attention.length} />
             <em>项</em>
           </strong>
-          <small>{errors.length ? `${errors.length} 项读取失败` : '仅针对已取得完整数据'}</small>
+          <small>{errors ? `${errors} 项读取失败` : '仅针对已取得完整数据'}</small>
         </div>
       </section>
       {attention.length ? (
@@ -173,19 +304,25 @@ export function Overview() {
               <div className="section-heading">
                 <div>
                   <h2>核心资源额度</h2>
-                  <p>当前用量与包含额度，一目了然</p>
+                  <p>每格 1% · 按各自周期计量</p>
                 </div>
-                <span className="section-hint">按指标独立计量</span>
+                <span className="section-hint">{cores.length} 项 · 预警优先</span>
               </div>
               <div className="core-metrics">
-                {cores.map((v, i) => (
-                  <MetricPanel
-                    key={v.id}
-                    view={v}
-                    color={['#f38020', '#18a38c', '#388bea'][i]}
-                    compactMode
-                  />
-                ))}
+                {cores.map((view) => {
+                  const product = productsById.get(view.definition.productId);
+                  return (
+                    <MetricPanel
+                      key={view.id}
+                      view={view}
+                      label={
+                        product ? `${product.name} ${view.definition.label}` : view.definition.label
+                      }
+                      color={view.id === 'worker_standard_cpu_ms' ? '#18a38c' : product?.color}
+                      compactMode
+                    />
+                  );
+                })}
               </div>
             </section>
           ) : null}
@@ -193,72 +330,30 @@ export function Overview() {
             <div className="section-heading">
               <div>
                 <h2>产品用量</h2>
-                <p>进入产品，查看每一项额度与费用</p>
+                <p>主要用量、剩余额度与数据状态</p>
               </div>
             </div>
             <div className="product-tabs" role="group" aria-label="产品分类">
               {groups.map((g) => (
-                <button aria-pressed={activeGroup === g} key={g} onClick={() => setGroup(g)}>
+                <button
+                  type="button"
+                  aria-pressed={activeGroup === g}
+                  key={g}
+                  onClick={() => setGroup(g)}
+                >
                   {g}
                 </button>
               ))}
             </div>
-            <div className="product-list">
-              {availableProducts
-                .filter((p) => p.group === activeGroup)
-                .map((p) => {
-                  const meters = all.filter((v) => v.definition.productId === p.id),
-                    primary = meters.find((v) => quotaFor(v).percent !== null) ?? meters[0],
-                    q = primary ? quotaFor(primary) : null,
-                    o = primary ? displayObservation(primary) : null;
-                  return (
-                    <Link className="product-row" key={p.id} to={'/products/' + p.id}>
-                      <ProductIcon product={p} />
-                      <div className="product-name">
-                        <strong>{p.name}</strong>
-                        <small>{p.description}</small>
-                      </div>
-                      <div className="product-progress">
-                        {q?.percent !== null && q?.percent !== undefined ? (
-                          <>
-                            <div className="progress-track">
-                              <i
-                                style={{
-                                  width: Math.min(100, Number(q.percent)) + '%',
-                                  background: q.level === 'exceeded' ? '#df5353' : p.color,
-                                }}
-                              />
-                            </div>
-                            <span>
-                              {compact(o?.usage)} / {compact(primary.definition.included)}{' '}
-                              {primary.definition.unit}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <div className="progress-track unknown-track" />
-                            <span>{primary ? statusLabel(primary) : '等待获取'}</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="product-remaining">
-                        <small>
-                          {q?.remaining !== null && q?.remaining !== undefined
-                            ? '剩余'
-                            : '数据状态'}
-                        </small>
-                        <strong>
-                          {q?.remaining !== null && q?.remaining !== undefined
-                            ? compact(q.remaining)
-                            : primary
-                              ? statusLabel(primary)
-                              : '待核实'}
-                        </strong>
-                      </div>
-                      <ChevronRight size={16} />
-                    </Link>
-                  );
-                })}
+            <div className="product-list" key={activeGroup}>
+              {activeProducts.map((product, index) => (
+                <ProductReading
+                  key={product.id}
+                  product={product}
+                  meters={readingsByProduct.get(product.id) ?? []}
+                  index={index}
+                />
+              ))}
               {!availableProducts.length ? (
                 <p className="panel-description">当前没有可显示的用量，请检查连接后刷新。</p>
               ) : null}
@@ -272,15 +367,21 @@ export function Overview() {
             <dl>
               <div>
                 <dt>固定订阅费</dt>
-                <dd>{money(snapshot.costs.fixed)}</dd>
+                <dd>
+                  <AnimatedValue value={money(snapshot.costs.fixed)} />
+                </dd>
               </div>
               <div>
                 <dt>已报告用量费</dt>
-                <dd>{money(snapshot.costs.reported)}</dd>
+                <dd>
+                  <AnimatedValue value={money(snapshot.costs.reported)} />
+                </dd>
               </div>
               <div>
                 <dt>未入账费用估算</dt>
-                <dd>{money(snapshot.costs.estimated)}</dd>
+                <dd>
+                  <AnimatedValue value={money(snapshot.costs.estimated)} />
+                </dd>
               </div>
               {(snapshot.costs.fixedOther ?? []).map((f) => (
                 <div key={f.frequency}>
@@ -301,13 +402,15 @@ export function Overview() {
             <div className="known-total">
               <span>已知费用合计</span>
               <strong>
-                {money(
-                  addAmounts(
-                    snapshot.costs.fixed,
-                    snapshot.costs.reported,
-                    snapshot.costs.estimated,
-                  ),
-                )}
+                <AnimatedValue
+                  value={money(
+                    addAmounts(
+                      snapshot.costs.fixed,
+                      snapshot.costs.reported,
+                      snapshot.costs.estimated,
+                    ),
+                  )}
+                />
               </strong>
             </div>
             <div className="cost-note">
@@ -329,39 +432,44 @@ export function Overview() {
             <div className="data-health">
               <CheckCircle2 size={20} />
               <span>
-                {all.filter((v) => v.current.status === 'ok').length}
+                <AnimatedValue value={all.filter((v) => v.current.status === 'ok').length} />
                 <small>项已读取用量</small>
               </span>
             </div>
             <div className="data-status-row">
               <span>暂无使用记录</span>
-              <strong>{all.filter((v) => v.current.status === 'no_records').length}</strong>
+              <strong>
+                <AnimatedValue
+                  value={all.filter((v) => v.current.status === 'no_records').length}
+                />
+              </strong>
             </div>
             <div className="data-status-row">
               <span>范围或单位待核实</span>
-              <strong>{all.filter((v) => v.current.status === 'partial').length}</strong>
+              <strong>
+                <AnimatedValue value={all.filter((v) => v.current.status === 'partial').length} />
+              </strong>
             </div>
             <div className="data-status-row">
               <span>读取失败</span>
-              <strong>{errors.length}</strong>
+              <strong>
+                <AnimatedValue value={errors} />
+              </strong>
             </div>
-            <p>临时失败会保留卡片与上次成功值，不会被当作 0。</p>
+            <div className="data-status-row">
+              <span>未完整计价</span>
+              <strong>
+                <AnimatedValue value={snapshot.costs.unpriced} />
+              </strong>
+            </div>
+            <div className="data-last-success">
+              <Clock3 size={14} />
+              <span>上次成功更新</span>
+              <strong>{dateTime(snapshot.succeededAt)}</strong>
+            </div>
           </section>
-          <div className="refresh-note">
-            <RefreshNoteIcon />
-            <h3>按需更新，轻量运行</h3>
-            <p>打开页面时刷新一次。需要最新数据时，点击「立即刷新」。</p>
-            <span>{demo ? '当前为独立演示环境' : '无定时采集 · 无历史存储'}</span>
-          </div>
         </aside>
       </div>
     </>
-  );
-}
-function RefreshNoteIcon() {
-  return (
-    <span className="refresh-note-icon">
-      <Clock3 size={19} />
-    </span>
   );
 }

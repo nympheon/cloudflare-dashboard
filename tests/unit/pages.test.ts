@@ -69,6 +69,33 @@ describe('available data in the rendered dashboard', () => {
     expect(html).toContain('Workers 请求次数');
     expect(html).not.toContain('Workers CPU 时间');
   });
+  it('shows more measured quota cards and the current cycle countdown on the overview', () => {
+    const full = demoSnapshot('normal');
+    full.billingPeriod.start = '2026-11-06T00:00:00Z';
+    full.billingPeriod.end = '2026-12-06T00:00:00Z';
+    full.attemptedAt = '2026-11-24T00:00:00Z';
+    const html = render(full);
+    expect(html).toContain('D1 读取行数');
+    expect(html).toContain('Queues 消息操作');
+    expect(html).toContain('每格 1%');
+    expect(html).toContain('距账期结束');
+    expect(html).toContain('12 天');
+  });
+  it('prioritizes an at-risk meter and preserves its actual percentage above the grid maximum', () => {
+    const full = demoSnapshot('normal');
+    full.metrics.queues_standard_operations.current.usage = '1250000';
+    const html = render(full);
+    const core = html.slice(html.indexOf('核心资源额度'), html.indexOf('产品用量'));
+    expect(core.indexOf('Queues 消息操作')).toBeLessThan(core.indexOf('Workers 请求次数'));
+    expect(core).toContain('已使用 125%');
+    expect(core).toContain('超出额度');
+  });
+  it('fills only a fraction of the first tile for a positive quota below one percent', () => {
+    snapshot.metrics.worker_standard_request.current.usage = '92000';
+    const html = render(snapshot);
+    expect(html).toContain('已使用 0.92%');
+    expect(html.match(/--cell-fill:0\.92(?:;|")/g)).toHaveLength(1);
+  });
   it('filters unavailable metrics on a directly opened product page', () => {
     const html = render(snapshot, '/products/workers');
     expect(html).toContain('请求次数');

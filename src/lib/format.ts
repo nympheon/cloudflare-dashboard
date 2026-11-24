@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import type { MetricView, Observation } from '../../shared/dashboard';
+import type { MetricView, Observation, Period, QuotaDisplay } from '../../shared/dashboard';
 import { deriveQuota } from '../../worker/billing/calculate';
 export const number = (value: string | null | undefined, maxDigits = 2) => {
   if (value == null) return '—';
@@ -23,6 +23,7 @@ export const compact = (value: string | null | undefined) => {
     if (v.gte(threshold)) return `${v.div(threshold).toDecimalPlaces(2).toString()}${suffix}`;
   return number(value);
 };
+export const percentage = (value: string | null) => (value === null ? '—' : number(value) + '%');
 export const money = (v: string | null | undefined) => {
   if (v == null) return '—';
   const d = new Decimal(v);
@@ -61,6 +62,19 @@ export const periodLabel = {
   day: '今日 · UTC',
   instant: '当前容量',
 };
+export function billingCycleDays(period: Period, at: string) {
+  if (!period.start || !period.end) return null;
+  const start = Date.parse(period.start);
+  const end = Date.parse(period.end);
+  const now = Date.parse(at);
+  if (!(start <= now && now < end)) return null;
+  const day = 24 * 60 * 60 * 1000;
+  return {
+    current: Math.floor((now - start) / day) + 1,
+    total: Math.ceil((end - start) / day),
+    remaining: Math.ceil((end - now) / day),
+  };
+}
 export function displayObservation(view: MetricView): Observation {
   return view.current.status === 'error' && view.lastSuccess ? view.lastSuccess : view.current;
 }
@@ -71,18 +85,18 @@ export function quotaFor(view: MetricView) {
     o.included ?? view.definition.included ?? null,
   );
 }
-export function statusLabel(view: MetricView) {
+export function statusLabel(view: MetricView, level?: QuotaDisplay['level']) {
   const current = view.current;
   if (current.status === 'error') return view.lastSuccess ? '读取失败 · 保留上次数据' : '暂未获取';
   if (current.status === 'partial') return '范围待核实';
   if (current.status === 'no_records') return '暂无记录';
   if (current.status === 'not_enabled') return '未开通';
-  const q = quotaFor(view);
-  return q.level === 'exceeded'
+  const quotaLevel = level ?? quotaFor(view).level;
+  return quotaLevel === 'exceeded'
     ? '已经超额'
-    : q.level === 'danger'
+    : quotaLevel === 'danger'
       ? '额度紧张'
-      : q.level === 'warning'
+      : quotaLevel === 'warning'
         ? '接近额度'
         : '正常';
 }

@@ -1,5 +1,7 @@
 import type { MetricView } from '../../../shared/dashboard';
-import { QuotaRing } from './QuotaRing';
+import { Link } from 'react-router-dom';
+import { QuotaWaffle } from './QuotaWaffle';
+import { AnimatedValue } from './AnimatedValue';
 import {
   compact,
   number,
@@ -10,17 +12,20 @@ import {
   displayObservation,
   quotaFor,
   statusLabel,
+  percentage,
 } from '../../lib/format';
 import { costParts } from '../../../worker/billing/calculate';
-import { CircleAlert, ExternalLink } from 'lucide-react';
+import { ArrowUpRight, CircleAlert, ExternalLink } from 'lucide-react';
 export function MetricPanel({
   view,
   color,
   compactMode = false,
+  label = view.definition.label,
 }: {
   view: MetricView;
   color?: string;
   compactMode?: boolean;
+  label?: string;
 }) {
   const d = view.definition,
     o = displayObservation(view),
@@ -28,21 +33,47 @@ export function MetricPanel({
     included = o.included ?? d.included;
   const unavailable = view.current.status === 'partial' || view.current.status === 'error';
   const costs = costParts(o, d.pricing);
+  const status = statusLabel(view, q.level);
+  const exceeded = q.excess !== null && Number(q.excess) > 0;
+  const inlineAlert =
+    compactMode && !unavailable && ['warning', 'danger', 'exceeded'].includes(q.level);
   return (
     <article
       className={`metric-panel ${compactMode ? 'compact-metric' : ''} ${q.level === 'exceeded' ? 'is-exceeded' : ''}`}
+      data-quota-level={q.level}
     >
       <div className="metric-panel-heading">
-        <h3>{d.label}</h3>
-        <span className={`metric-status ${unavailable ? 'muted-status' : q.level}`}>
-          {statusLabel(view)}
-        </span>
+        <h3>
+          {compactMode ? (
+            <Link className="metric-heading-link" to={'/products/' + d.productId}>
+              <span>{label}</span>
+              <ArrowUpRight size={12} />
+            </Link>
+          ) : (
+            label
+          )}
+        </h3>
+        {(!compactMode || (!inlineAlert && status !== '正常')) && (
+          <span key={status} className={`metric-status ${unavailable ? 'muted-status' : q.level}`}>
+            {status}
+          </span>
+        )}
       </div>
       <div className="metric-main">
-        <QuotaRing quota={q} color={color} size={compactMode ? 102 : 126} label={d.label} />
+        <QuotaWaffle quota={q} color={color} label={label} />
         <div className="metric-amount">
+          <div className="metric-ratio">
+            <AnimatedValue value={percentage(q.percent)} />
+            {inlineAlert ? (
+              <small className="metric-ratio-alert" key={status}>
+                {status}
+              </small>
+            ) : (
+              <small>{q.percent === null ? '比例未知' : '已使用'}</small>
+            )}
+          </div>
           <strong>
-            {compact(o.usage)}
+            <AnimatedValue value={compact(o.usage)} />
             <small>{d.unit}</small>
           </strong>
           <p>
@@ -50,13 +81,13 @@ export function MetricPanel({
               ? '无已核实包含额度'
               : `${d.hardLimit ? '平台上限' : '包含'} ${compact(included)} ${d.unit}`}
           </p>
-          <span>{periodLabel[d.period]}</span>
+          <span>{periodLabel[o.period.kind]}</span>
         </div>
       </div>
       <div className="quota-details">
-        <span>{q.excess !== null && Number(q.excess) > 0 ? '超出额度' : '剩余额度'}</span>
+        <span>{exceeded ? '超出额度' : '剩余额度'}</span>
         <strong>
-          {q.excess !== null && Number(q.excess) > 0 ? compact(q.excess) : compact(q.remaining)}
+          <AnimatedValue value={compact(exceeded ? q.excess : q.remaining)} />
           <small>{included === undefined ? '' : d.unit}</small>
         </strong>
       </div>
