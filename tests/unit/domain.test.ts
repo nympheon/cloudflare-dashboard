@@ -108,6 +108,15 @@ describe('stable last-success observations', () => {
     expect(failed.id).toBe(first.id);
     expect(mergeMetric(definition(), failed, observation('0')).lastSuccess?.usage).toBe('0');
   });
+  it('keeps cached usage without reviving an estimate blocked by the current bill', () => {
+    const first = mergeMetric(definition(), undefined, observation('12'));
+    const failed = mergeMetric(definition(), first, {
+      ...observation(null, 'error'),
+      estimationBlocked: true,
+    });
+    expect(failed.lastSuccess?.usage).toBe('12');
+    expect(meterCost(failed.lastSuccess!, { included: '10', rate: '1', per: '1' })).toBeNull();
+  });
   it('does not use prior-period data as current usage', () => {
     const first = mergeMetric(definition(), undefined, observation('12'));
     const next = mergeMetric(definition(), first, {

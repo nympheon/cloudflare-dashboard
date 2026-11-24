@@ -8,6 +8,7 @@
 - Workers 从 sum.requests 和 sum.cpuTimeUs 取数；CPU 将微秒除以 1000 转为 ms。
 - D1 使用 rowsRead/rowsWritten；DO compute、SQL 行计量与旧 KV 后端独立。DO periodic 的 duration 字段本身是 GB-s，不再换算；旧 KV 后端读写字段是 4 KB 单位。
 - DO 请求暂采用 billable-usage：普通 WebSocket 消息与休眠消息位于不同统计来源，原始 Analytics 不应用入站消息 20:1 折算，不能直接将 requests 当成计费请求。
+- DO 账单中的 Storage Rows Read / Written 对应 SQLite 行读写。Workers AI 的 RTN 和 FTN 分别记录账期内的已报告用量及金额，每日神经元用量继续来自 Analytics。
 - R2 按 actionType、storageClass 与 responseStatusCode 区分操作。A 类包括 PutBucket、PutBucketEncryption、PutBucketCors 和 LifecycleStorageTierTransition；文档列明的免费操作及 HTTP 401 排除。遇到未知操作或存储类型时，停止推算并回退到账单。CopyObject / UploadPartCopy 可能读取 IA 源对象，缺少取回字节时不能判为零。
 - KV 按 actionType 分类。当前容量与 GB-month 分开。
 - Builds、Queues、Workflows、Containers、Hyperdrive、Vectorize、AI、Browser、Pipelines、Realtime、TURN、Images、Stream 等使用固定 schema；普通刷新不重复 introspection。
@@ -22,7 +23,7 @@
 5. Builds：空 limits 对象不能当作零，自然月额度与订阅账期分开。
 6. 存储：容量峰值不能直接换成 GB-month。R2 Standard 完整周期的峰值明确为零时可推导零存储计量；正峰值但换算不可靠时采用账单。IA 有最短 30 天存储时长费用，容量为零也不能据此推导零计费量。
 7. Containers：byte-seconds 按计费规则换算 GiB-s/GB-s；时间单位与区域流出分别计算。
-8. 周期：每日 AI、年度订阅及其他起止时间的固定费用不混入同一个账期总额。
+8. 周期：每日 AI 估算、年度订阅及其他起止时间的固定费用不混入同一个账期总额。Workers AI 的计费记录计入所在账期，入账区间涉及当前 UTC 日时暂停当天 AI 增量估算。
 9. 开通时间：查询区间从套餐生效时间与周期起点的较晚者开始，避免把 Free 阶段套入 Paid 价格。
 10. Zero Trust：按席位标志去重计数，不持久化用户姓名或邮箱。
 11. 价格到期：已知规则到期后停止沿用旧价格，标记未计价，等待更新。

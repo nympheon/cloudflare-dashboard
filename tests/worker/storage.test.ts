@@ -1,6 +1,6 @@
 // Fixture identities, billing dates and quantities are synthetic.
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { refreshDashboard } from '../../worker/refresh';
 import { demoSnapshot } from '../../src/demo';
 import { encryptToken } from '../../worker/settings/crypto';
@@ -26,6 +26,12 @@ beforeEach(async () => {
     await env.DB.prepare(statement).run();
 });
 describe('encrypted settings and revision gates in D1', () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date('2026-10-23T12:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   it.each([
     ['Workers Standard', false],
     ['Workers Standard Requests (first 10M are included)', false],
@@ -159,67 +165,143 @@ describe('encrypted settings and revision gates in D1', () => {
       vi.unstubAllGlobals();
     }
   });
-  it('keeps annual fixed fees and daily AI estimates out of the subscription-cycle total', async () => {
-    const repo = new Repository(env.DB);
-    await saveCredential(repo, 'user', fixtureToken, env.TOKEN_ENCRYPTION_KEY, transport);
-    const subscriptions = [
-      {
-        id: 'monthly',
-        rate_plan: { id: 'workers_paid', public_name: 'Workers Paid' },
-        price: 5,
-        currency: 'USD',
-        frequency: 'monthly',
-        current_period_start: '2026-10-15T00:00:00Z',
-        current_period_end: '2026-11-15T00:00:00Z',
-        state: 'Paid',
-      },
-      {
-        id: 'annual',
-        rate_plan: { id: 'annual', public_name: 'Annual Plan' },
-        price: 20,
-        currency: 'USD',
-        frequency: 'yearly',
-        current_period_start: '2026-01-01T00:00:00Z',
-        current_period_end: '2027-01-01T00:00:00Z',
-        state: 'Paid',
-      },
-    ];
-    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
-      if (String(input).includes('/graphql')) {
-        const q = JSON.parse(String(init?.body)).query as string;
-        const name = q.match(/(\w+)\(limit:/)?.[1] ?? '';
-        return Response.json({
-          data: {
-            viewer: {
-              accounts: [
-                {
-                  [name]:
-                    name === 'aiInferenceAdaptiveGroups' && q.includes('totalNeurons')
-                      ? [{ sum: { totalNeurons: '12000' } }]
-                      : [],
-                },
-              ],
+  it.each([
+    { scenario: 'no AI bill', serviceName: null, through: null, daily: '0.022', unmatched: false },
+    {
+      scenario: 'an AI charge ending at the UTC day boundary',
+      serviceName: 'Regular Twitch Neurons (RTN)',
+      through: '2026-10-23T00:00:00Z',
+      daily: '0.022',
+      unmatched: false,
+    },
+    {
+      scenario: 'an AI charge covering part of the current UTC day',
+      serviceName: 'Regular Twitch Neurons (RTN)',
+      through: '2026-10-23T06:00:00Z',
+      daily: '0',
+      unmatched: false,
+    },
+    {
+      scenario: 'an unrecognized Workers AI charge',
+      serviceName: 'Future Workers AI meter',
+      through: '2026-10-23T00:00:00Z',
+      daily: '0',
+      unmatched: true,
+    },
+    {
+      scenario: 'a current-day RTN charge with no product family',
+      serviceName: 'Regular Twitch Neurons (RTN)',
+      family: null,
+      through: '2026-10-23T06:00:00Z',
+      daily: '0',
+      unmatched: false,
+    },
+    {
+      scenario: 'a charge for an unknown product',
+      serviceName: 'Future product usage',
+      family: 'Future Product',
+      through: '2026-10-23T00:00:00Z',
+      daily: '0',
+      unmatched: true,
+      expectedEstimate: '0',
+    },
+  ])(
+    'preserves billing-cycle totals with $scenario',
+    async ({
+      serviceName,
+      family = 'Workers AI',
+      through,
+      daily,
+      unmatched,
+      expectedEstimate = '0.75',
+    }) => {
+      const repo = new Repository(env.DB);
+      await saveCredential(repo, 'user', fixtureToken, env.TOKEN_ENCRYPTION_KEY, transport);
+      const subscriptions = [
+        {
+          id: 'monthly',
+          rate_plan: { id: 'workers_paid', public_name: 'Workers Paid' },
+          price: 5,
+          currency: 'USD',
+          frequency: 'monthly',
+          current_period_start: '2026-10-15T00:00:00Z',
+          current_period_end: '2026-11-15T00:00:00Z',
+          state: 'Paid',
+        },
+        {
+          id: 'annual',
+          rate_plan: { id: 'annual', public_name: 'Annual Plan' },
+          price: 20,
+          currency: 'USD',
+          frequency: 'yearly',
+          current_period_start: '2026-01-01T00:00:00Z',
+          current_period_end: '2027-01-01T00:00:00Z',
+          state: 'Paid',
+        },
+      ];
+      vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes('/graphql')) {
+          const q = JSON.parse(String(init?.body)).query as string;
+          const name = q.match(/(\w+)\(limit:/)?.[1] ?? '';
+          let records: unknown[] = [];
+          if (name === 'workersInvocationsAdaptive')
+            records = [{ sum: { requests: '12500000', cpuTimeUs: '0' } }];
+          if (name === 'aiInferenceAdaptiveGroups' && q.includes('totalNeurons'))
+            records = [{ sum: { totalNeurons: '12000' } }];
+          return Response.json({
+            data: {
+              viewer: {
+                accounts: [{ [name]: records }],
+              },
             },
-          },
-          errors: null,
-        });
-      }
-      return Response.json({
-        success: true,
-        result: String(input).includes('/subscriptions') ? subscriptions : [],
-        result_info: { total_pages: 1 },
+            errors: null,
+          });
+        }
+        const path = String(input);
+        let result: unknown[] = [];
+        if (path.includes('/subscriptions')) result = subscriptions;
+        if (path.includes('/billable-usage') && serviceName)
+          result = [
+            {
+              ServiceName: serviceName,
+              ServiceFamilyName: family ?? undefined,
+              BillingPeriodStart: '2026-10-15T00:00:00Z',
+              ChargePeriodStart: '2026-10-22T00:00:00Z',
+              ChargePeriodEnd: through,
+              ConsumedQuantity: '15000',
+              ConsumedUnit: 'Count',
+              BilledCost: '0.2',
+              BillingCurrency: 'USD',
+            },
+          ];
+        return Response.json({ success: true, result, result_info: { total_pages: 1 } });
       });
-    });
-    try {
-      const next = await refreshDashboard('manual', env);
-      expect(next.costs.fixed).toBe('5');
-      expect(next.costs.fixedOther).toEqual([{ frequency: 'yearly', amount: '20' }]);
-      expect(next.costs.dailyEstimated).toBe('0.022');
-      expect(next.costs.estimated).toBe('0');
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
+      try {
+        const next = await refreshDashboard('manual', env);
+        expect(next.costs.fixed).toBe('5');
+        expect(next.costs.fixedOther).toEqual([{ frequency: 'yearly', amount: '20' }]);
+        expect(next.costs.reported).toBe(serviceName ? '0.2' : '0');
+        expect(next.costs.dailyEstimated).toBe(daily);
+        expect(next.costs.estimated).toBe(expectedEstimate);
+        expect(next.warnings.some((item) => item.includes('部分账单项目尚未匹配'))).toBe(unmatched);
+        expect(next.metrics.workers_ai_neurons.current).toMatchObject({
+          usage: '12000',
+          period: { kind: 'day' },
+        });
+        if (serviceName && !unmatched) {
+          const billed = next.metrics.workers_ai_regular_twitch_neurons;
+          expect(billed.definition.productId).toBe('workers-ai');
+          expect(billed.current).toMatchObject({
+            usage: '15000',
+            period: { kind: 'billing_cycle' },
+            reportedCost: '0.2',
+          });
+        }
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
   it('deduplicates concurrent refreshes using a bounded D1 lease and releases it', async () => {
     const repo = new Repository(env.DB);
     expect(await repo.acquireRefresh('first', 1000)).toBe(true);

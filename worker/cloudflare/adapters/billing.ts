@@ -8,9 +8,15 @@ const aliases: Array<[RegExp, string]> = [
   [/D1.*Rows Read/i, 'd1_rows_read'],
   [/D1.*Rows Writ/i, 'd1_rows_written'],
   [/D1.*Storage/i, 'd1_storage'],
+  [
+    /Durable Objects.*(?:SQL|SQLite).*Read|^Durable Objects Storage Rows Read\b/i,
+    'worker_durable_objects_sql_rows_read',
+  ],
+  [
+    /Durable Objects.*(?:SQL|SQLite).*Writ|^Durable Objects Storage Rows Written\b/i,
+    'worker_durable_objects_sql_rows_written',
+  ],
   [/Durable Objects.*(?:SQL|SQLite).*Storage/i, 'worker_durable_objects_sql_storage'],
-  [/Durable Objects.*(?:SQL|SQLite).*Read/i, 'worker_durable_objects_sql_rows_read'],
-  [/Durable Objects.*(?:SQL|SQLite).*Writ/i, 'worker_durable_objects_sql_rows_written'],
   [/Durable Objects.*Request/i, 'worker_durable_objects_requests'],
   [/Durable Objects.*Duration/i, 'worker_durable_objects_duration'],
   [/R2.*(?:IA|Infrequent).*Class A/i, 'r2_ia_class_a_operations'],
@@ -32,6 +38,8 @@ const aliases: Array<[RegExp, string]> = [
   [/Image.*Deliver/i, 'image_delivered_per_hundred_thousand'],
   [/Stream.*View|Stream.*Deliver/i, 'stream_viewed_thousand_minutes'],
   [/Browser.*Hour/i, 'browser_rendering_total_browser_hours'],
+  [/^Regular Twitch Neurons(?:\s*\(RTN\))?$/i, 'workers_ai_regular_twitch_neurons'],
+  [/^Fast Twitch Neurons(?:\s*\(FTN\))?$/i, 'workers_ai_fast_twitch_neurons'],
   [/Zaraz.*Load/i, 'zaraz_loads'],
 ];
 export function billableMetricId(name: string): string | null {
@@ -52,6 +60,7 @@ const billingProducts: Record<string, string> = {
   r2: 'r2',
   kv: 'kv',
   'workers kv': 'kv',
+  'workers ai': 'workers-ai',
   'durable objects': 'durable-objects',
   'browser rendering': 'browser',
   'browser run': 'browser',
@@ -67,6 +76,12 @@ const billingProducts: Record<string, string> = {
   realtime: 'realtime',
   zaraz: 'network',
 };
+function latestChargeEnd(end: string, previous = end): string {
+  const currentTime = Date.parse(end);
+  const previousTime = Date.parse(previous);
+  if (Number.isNaN(currentTime) || Number.isNaN(previousTime)) return '';
+  return currentTime >= previousTime ? end : previous;
+}
 export function aggregateBillable(
   rows: Json[],
   cycleStart: string,
@@ -91,14 +106,16 @@ export function aggregateBillable(
       cost = numeric(r.BilledCost);
     if (usage === null || cost === null) continue;
     const old = out[id];
+    const family = text(r.ServiceFamilyName).trim().toLowerCase();
+    const productId = id.startsWith('workers_ai_') ? 'workers-ai' : billingProducts[family];
     out[id] = {
       usage: new Decimal(old?.usage ?? 0).plus(usage).toString(),
       cost: new Decimal(old?.cost ?? 0).plus(cost).toString(),
-      through: [old?.through ?? '', text(r.ChargePeriodEnd)].sort().at(-1)!,
+      through: latestChargeEnd(text(r.ChargePeriodEnd), old?.through),
       unit: text(r.ConsumedUnit) || text(r.PricingUnit),
       name,
       currency: text(r.BillingCurrency),
-      productId: billingProducts[text(r.ServiceFamilyName).toLowerCase()],
+      productId: old && old.productId !== productId ? undefined : productId,
     };
   }
   return out;

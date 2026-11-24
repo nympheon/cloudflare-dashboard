@@ -75,6 +75,26 @@ describe('billing sources', () => {
     const result = aggregateBillable([row, second, row], '2026-10-15T00:00:00.000Z');
     expect(result.d1_rows_read).toMatchObject({ usage: '10', cost: '0.3' });
   });
+  it('uses the latest charge end when timestamps have different precision', () => {
+    const result = aggregateBillable(
+      [
+        { ...row, ChargePeriodEnd: '2026-10-23T00:00:00Z' },
+        { ...row, ChargePeriodEnd: '2026-10-23T00:00:00.500Z' },
+      ],
+      row.BillingPeriodStart,
+    );
+    expect(result.d1_rows_read.through).toBe('2026-10-23T00:00:00.500Z');
+  });
+  it('keeps an unmatched meter unscoped if rows disagree about its product', () => {
+    const result = aggregateBillable(
+      [
+        { ...row, ServiceName: 'Future usage', ServiceFamilyName: 'Unrecognized product' },
+        { ...row, ServiceName: 'Future usage', ServiceFamilyName: 'Workers AI' },
+      ],
+      row.BillingPeriodStart,
+    );
+    expect(result.billing_future_usage).toMatchObject({ cost: '0.2', productId: undefined });
+  });
   it('recognizes correct meters and ignores old billing cycles', () => {
     expect(billableMetricId('Workers CPU ms (first 30M are included)')).toBe(
       'worker_standard_cpu_ms',
@@ -97,6 +117,37 @@ describe('billing sources', () => {
     );
     expect(Object.keys(result)).toEqual(['worker_standard_request']);
     expect(result.worker_standard_request.cost).toBe('0.75');
+  });
+  it.each([
+    ['Regular Twitch Neurons (RTN)', 'Workers AI', 'workers_ai_regular_twitch_neurons'],
+    ['Fast Twitch Neurons (FTN)', 'Workers AI', 'workers_ai_fast_twitch_neurons'],
+    [
+      'Durable Objects Storage Rows Read (First 25B included)',
+      'Durable Objects',
+      'worker_durable_objects_sql_rows_read',
+    ],
+    [
+      'Durable Objects Storage Rows Written (First 50M included)',
+      'Durable Objects',
+      'worker_durable_objects_sql_rows_written',
+    ],
+    [
+      'Durable Objects SQL Storage Rows Read',
+      'Durable Objects',
+      'worker_durable_objects_sql_rows_read',
+    ],
+    [
+      'Durable Objects SQL Storage Rows Written',
+      'Durable Objects',
+      'worker_durable_objects_sql_rows_written',
+    ],
+  ])('assigns the billed %s to its meter', (name, family, id) => {
+    const result = aggregateBillable(
+      [{ ...row, ServiceName: name, ServiceFamilyName: family, ConsumedUnit: 'Count' }],
+      row.BillingPeriodStart,
+    );
+    expect(Object.keys(result)).toEqual([id]);
+    expect(result[id]).toMatchObject({ usage: '4', cost: '0.1' });
   });
 });
 describe('operation and discovery semantics', () => {

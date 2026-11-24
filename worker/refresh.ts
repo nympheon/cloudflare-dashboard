@@ -115,6 +115,11 @@ async function performRefresh(
   Object.assign(observations, account);
   const unmatched = Object.entries(billing).filter(([id]) => id.startsWith('billing_'));
   const blockedProducts = new Set(unmatched.map(([, value]) => value.productId));
+  const todayStart = Date.parse(periodFor('day', now).start!);
+  const workersAiBillingOverlapsToday = Object.values(billing).some(({ productId, through }) => {
+    const chargeEnd = Date.parse(through);
+    return productId === 'workers-ai' && (Number.isNaN(chargeEnd) || chargeEnd > todayStart);
+  });
   if (unmatched.length)
     warnings.push('部分账单项目尚未匹配到用量指标；已计入报告金额，并暂停可能重叠的费用估算。');
   for (const [id, value] of Object.entries(billing)) {
@@ -163,7 +168,13 @@ async function performRefresh(
       source: definition.source,
       message: '已登记此计费维度；可靠用量或单位来源待核实',
     };
-    if (blockedProducts.has(undefined) || blockedProducts.has(definition.productId))
+    if (
+      blockedProducts.has(undefined) ||
+      blockedProducts.has(definition.productId) ||
+      (workersAiBillingOverlapsToday &&
+        definition.productId === 'workers-ai' &&
+        definition.period === 'day')
+    )
       current.estimationBlocked = true;
     const view = mergeMetric(
       definition,

@@ -20,11 +20,15 @@ export function mergeMetric(
     (current.period.kind === 'instant' || previous.lastSuccess.rangeStart === current.rangeStart)
       ? previous.lastSuccess
       : null;
+  const lastSuccess = successful ? current : previousSuccess;
   return {
     id: definition.id,
     definition,
     current,
-    lastSuccess: successful ? current : previousSuccess,
+    lastSuccess:
+      lastSuccess && current.estimationBlocked && !lastSuccess.estimationBlocked
+        ? { ...lastSuccess, estimationBlocked: true }
+        : lastSuccess,
     capability: previous?.capability ?? {
       visibility: 'visible',
       reason: '来源能力待核查',
