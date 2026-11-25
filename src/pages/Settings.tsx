@@ -170,12 +170,7 @@ export function Settings() {
   return (
     <>
       <div className="page-heading">
-        <div>
-          <h1>
-            Token 与设置<span className="heading-dot">.</span>
-          </h1>
-          <p>连接你的账户，让每项资源用量都有据可查。</p>
-        </div>
+        <h1>Token 与设置</h1>
       </div>
       <div className="settings-info">
         <ShieldCheck size={21} />
@@ -210,18 +205,11 @@ export function Settings() {
       </section>
       <section className="settings-notes">
         <h2>连接说明</h2>
-        <div>
-          <span>01</span>
-          <p>两个 Token 必须访问同一个账户。可以先保存一个，另一类型独立保存或替换。</p>
-        </div>
-        <div>
-          <span>02</span>
-          <p>使用只读权限，无需写权限。无法取得数据的指标会隐藏，恢复读取后自动显示。</p>
-        </div>
-        <div>
-          <span>03</span>
-          <p>仅在打开网页与手动操作时更新。内部切换产品页面会复用当前结果。</p>
-        </div>
+        <ul>
+          <li>两个 Token 必须访问同一个账户。可以先保存一个，另一类型独立保存或替换。</li>
+          <li>使用只读权限。无法取得数据的指标会隐藏，恢复读取后自动显示。</li>
+          <li>打开网页或手动操作时更新。内部切换页面会复用当前结果。</li>
+        </ul>
         <a
           href="https://dash.cloudflare.com/profile/api-tokens"
           target="_blank"

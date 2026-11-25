@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useLocation, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, Info } from 'lucide-react';
 import { products } from '../../shared/catalog';
 import { visibleMetrics } from '../../shared/visibility';
@@ -10,11 +10,16 @@ export function Product() {
   const { productId } = useParams(),
     { snapshot } = useDashboard(),
     product = products.find((p) => p.id === productId);
+  const fromUsage = useLocation().state?.from === '/usage';
+  const back = fromUsage ? '/usage' : '/';
+  const backLabel = fromUsage ? '返回产品用量' : '返回使用总览';
   if (!product)
     return (
       <div className="connect-panel">
         <h1>产品不存在</h1>
-        <Link to="/">返回总览</Link>
+        <Link className="text-link" to={back}>
+          {backLabel}
+        </Link>
       </div>
     );
   const views = visibleMetrics(snapshot?.metrics ?? {}).filter(
@@ -22,9 +27,9 @@ export function Product() {
   );
   return (
     <>
-      <Link className="back-link" to="/">
+      <Link className="back-link" to={back}>
         <ArrowLeft size={14} />
-        返回总览
+        {backLabel}
       </Link>
       <div className="page-heading product-heading">
         <div className="product-title">
@@ -112,8 +117,8 @@ export function Product() {
               ? '获取到可靠数据后，产品会自动出现在用量列表中。'
               : '保存 Token 并刷新后，这里会显示产品的独立计量指标。'}
           </p>
-          <Link to={snapshot ? '/' : '/settings'} className="text-link">
-            {snapshot ? '返回总览' : '配置 Token'}
+          <Link to={snapshot ? back : '/settings'} className="text-link">
+            {snapshot ? backLabel : '配置 Token'}
             <ArrowUpRight size={15} />
           </Link>
         </div>

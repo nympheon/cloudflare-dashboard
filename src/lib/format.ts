@@ -6,8 +6,12 @@ export const number = (value: string | null | undefined, maxDigits = 2) => {
   const decimal = new Decimal(value),
     threshold = new Decimal(10).pow(-maxDigits);
   if (decimal.gt(0) && decimal.lt(threshold)) return '<' + threshold.toFixed(maxDigits);
-  const [whole, fraction] = decimal.toDecimalPlaces(maxDigits).toFixed().split('.');
-  return new Intl.NumberFormat('zh-CN').format(BigInt(whole)) + (fraction ? '.' + fraction : '');
+  const rounded = decimal.toDecimalPlaces(maxDigits);
+  const [whole, fraction] = rounded.abs().toFixed().split('.');
+  const sign = rounded.lt(0) ? '-' : '';
+  return (
+    sign + new Intl.NumberFormat('zh-CN').format(BigInt(whole)) + (fraction ? '.' + fraction : '')
+  );
 };
 export const addAmounts = (...values: Array<string | null | undefined>) =>
   values.some((v) => v == null)
@@ -22,6 +26,11 @@ export const compact = (value: string | null | undefined) => {
   ] as const)
     if (v.gte(threshold)) return `${v.div(threshold).toDecimalPlaces(2).toString()}${suffix}`;
   return number(value);
+};
+export const quantity = (value: string | null | undefined, unit: string, exact = false) => {
+  if (value == null) return '—';
+  const formatted = exact ? number(value, new Decimal(value).decimalPlaces()) : compact(value);
+  return unit ? formatted + ' ' + unit : formatted;
 };
 export const percentage = (value: string | null) => (value === null ? '—' : number(value) + '%');
 export const money = (v: string | null | undefined) => {

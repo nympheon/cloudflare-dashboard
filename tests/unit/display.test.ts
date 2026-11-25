@@ -2,7 +2,7 @@
 import { it, expect } from 'vitest';
 import { metrics } from '../../shared/catalog';
 import { mergeMetric } from '../../worker/metrics/state';
-import { quotaFor, number, money } from '../../src/lib/format';
+import { quotaFor, number, money, quantity } from '../../src/lib/format';
 it('does not display a full-period balance for partial usage', () => {
   const view = mergeMetric(metrics[0], undefined, {
     usage: '10',
@@ -23,4 +23,7 @@ it('does not display a full-period balance for partial usage', () => {
 it('formats large integers without rounding and tiny positive fees without showing zero', () => {
   expect(number('9007199254740993', 0)).toBe('9,007,199,254,740,993');
   expect(money('0.00000001')).toBe('<$0.0001');
+});
+it('preserves the sign of a negative quantity smaller than one unit', () => {
+  expect(quantity('-0.25', 'GB', true)).toBe('-0.25 GB');
 });

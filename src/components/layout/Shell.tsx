@@ -1,165 +1,227 @@
-import { useState } from 'react';
-import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, matchPath, Outlet, useLocation } from 'react-router-dom';
 import {
-  Cloud,
-  LayoutDashboard,
-  Settings2,
-  Menu,
-  RefreshCw,
   ArrowUpRight,
+  ChevronDown,
+  CircleAlert,
+  RefreshCw,
+  Settings2,
   ShieldCheck,
-  AlertCircle,
 } from 'lucide-react';
 import { products } from '../../../shared/catalog';
 import { visibleProducts } from '../../../shared/visibility';
+import type { Product } from '../../../shared/dashboard';
 import { useDashboard } from '../../app/DashboardProvider';
-import { Button } from '../ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../ui/sheet';
-import { ProductIcon } from './ProductIcon';
 import { dateTime } from '../../lib/format';
-export function Brand() {
-  return (
-    <Link to="/" className="brand">
-      <span className="brand-cloud">
-        <Cloud size={27} fill="currentColor" strokeWidth={1.6} />
-      </span>
-      <span>
-        Cloudflare <strong>Pulse</strong>
-        <small>用量与费用监控</small>
-      </span>
-    </Link>
-  );
-}
+import { productGroups } from '../../lib/readings';
+import { ProductIcon } from './ProductIcon';
+import { Button } from '../ui/button';
+
+export type UsageView = 'matrix' | 'ranking' | 'metrics';
+export type UsageGroup = '全部' | Product['group'];
+export type DashboardViewState = {
+  selectedMetric: string | null;
+  setSelectedMetric: (id: string) => void;
+  usageView: UsageView;
+  setUsageView: (view: UsageView) => void;
+  usageGroup: UsageGroup;
+  setUsageGroup: (group: UsageGroup) => void;
+};
+
 export function Shell() {
-  const [open, setOpen] = useState(false);
   const { snapshot, settings, refreshing, refresh, error, demo } = useDashboard();
   const location = useLocation();
-  const availableProducts = visibleProducts(products, snapshot?.metrics ?? {});
-  const nav = (
-    <>
-      <Brand />
-      <nav className="main-nav" aria-label="产品导航">
-        <NavLink to="/" end onClick={() => setOpen(false)}>
-          <LayoutDashboard size={18} />
-          <span>使用总览</span>
-        </NavLink>
-        {(['Workers Paid', 'AI 与媒体', '网络与订阅'] as const)
-          .filter((group) => availableProducts.some((p) => p.group === group))
-          .map((group) => (
-            <div className="nav-group" key={group}>
-              <p>{group}</p>
-              {availableProducts
-                .filter((p) => p.group === group)
-                .map((p) => (
-                  <NavLink key={p.id} to={'/products/' + p.id} onClick={() => setOpen(false)}>
-                    <ProductIcon product={p} small />
-                    <span>{p.name}</span>
-                  </NavLink>
-                ))}
-            </div>
-          ))}
+  const [directoryOpen, setDirectoryOpen] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
+  const [usageView, setUsageView] = useState<UsageView>('matrix');
+  const [usageGroup, setUsageGroup] = useState<UsageGroup>('全部');
+  const directoryTrigger = useRef<HTMLButtonElement>(null);
+  const main = useRef<HTMLElement>(null);
+  const previousPath = useRef(location.pathname);
+  const available = snapshot ? visibleProducts(products, snapshot.metrics) : [];
+  const onSettings = !!matchPath('/settings', location.pathname);
+  const onUsage = !!matchPath('/usage', location.pathname);
+  const productMatch = matchPath('/products/:productId', location.pathname);
+  const product =
+    productMatch && products.find((entry) => entry.id === productMatch.params.productId);
+  const fromUsage = !!productMatch && location.state?.from === '/usage';
+  const title = onSettings
+    ? 'Token 与设置'
+    : onUsage
+      ? '产品用量'
+      : productMatch
+        ? (product?.name ?? '产品详情')
+        : '使用总览';
+
+  useEffect(() => {
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
+    setDirectoryOpen(false);
+    main.current?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  return (
+    <div
+      className="app-shell"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && directoryOpen) {
+          setDirectoryOpen(false);
+          directoryTrigger.current?.focus();
+        }
+      }}
+    >
+      <a className="skip-link" href="#main-content">
+        跳到主要内容
+      </a>
+      <header className="workspace-header">
+        <div className="wordmark">
+          <Link to="/" className="brand" aria-label="Cloudflare Pulse 首页">
+            Cloudflare <b>Pulse</b>
+          </Link>
+          <nav className="page-switch" aria-label="页面切换">
+            <Link
+              to="/"
+              aria-current={title === '使用总览' ? 'page' : undefined}
+              data-active={!onUsage && !fromUsage && !onSettings}
+            >
+              使用总览
+            </Link>
+            <Link
+              to="/usage"
+              aria-current={onUsage ? 'page' : undefined}
+              data-active={onUsage || fromUsage}
+            >
+              产品用量
+            </Link>
+          </nav>
+        </div>
+        <div className="utilities">
+          <button
+            type="button"
+            ref={directoryTrigger}
+            className="utility"
+            aria-expanded={directoryOpen}
+            aria-controls="product-directory"
+            onClick={() => setDirectoryOpen((open) => !open)}
+          >
+            产品目录 <ChevronDown size={14} />
+          </button>
+          <Link to="/settings" className="utility" aria-current={onSettings ? 'page' : undefined}>
+            <Settings2 size={14} /> Token 与设置
+          </Link>
+          <a
+            className="utility dashboard-link"
+            href="https://dash.cloudflare.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Cloudflare <ArrowUpRight size={14} />
+          </a>
+        </div>
+      </header>
+      <nav
+        id="product-directory"
+        className="product-directory"
+        aria-label="产品目录"
+        hidden={!directoryOpen}
+      >
+        {productGroups.map((group) => {
+          const entries = available.filter((entry) => entry.group === group);
+          return (
+            entries.length > 0 && (
+              <div key={group}>
+                <h2>{group}</h2>
+                <ul>
+                  {entries.map((entry) => (
+                    <li key={entry.id}>
+                      <Link
+                        to={'/products/' + entry.id}
+                        state={{ from: onUsage || fromUsage ? '/usage' : '/' }}
+                        aria-current={entry.id === product?.id ? 'page' : undefined}
+                        onClick={() => {
+                          setDirectoryOpen(false);
+                          if (entry.id === product?.id) directoryTrigger.current?.focus();
+                        }}
+                      >
+                        <ProductIcon product={entry} small /> {entry.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          );
+        })}
+        {!available.length && <p>当前没有可显示的产品。</p>}
       </nav>
-      <div className="nav-footer">
-        <NavLink to="/settings" onClick={() => setOpen(false)}>
-          <Settings2 size={18} />
-          <span>Token 与设置</span>
-        </NavLink>
-        <div className="local-status">
-          <span className="status-dot" />
-          {import.meta.env.DEV ? '本地预览' : '云端服务'}
-          <span>{import.meta.env.DEV ? '尚未部署' : '运行中'}</span>
+      <div className="page-tools">
+        <div className="workspace-context">
+          <span>工作空间 / {title}</span>
+          {demo ? (
+            <span className="demo-label">演示数据 · 不保存</span>
+          ) : (
+            <span>{settings?.account?.name ?? '等待连接账户'}</span>
+          )}
+        </div>
+        <div className="refresh-tools">
+          <span className="updated" role="status">
+            <span className={refreshing ? 'status-dot pulse' : 'status-dot'} />
+            {refreshing
+              ? '正在读取最新用量…'
+              : snapshot
+                ? '最近更新 ' + dateTime(snapshot.attemptedAt)
+                : '连接你的 Cloudflare 账户'}
+          </span>
+          <Button
+            size="sm"
+            className="refresh-button"
+            disabled={refreshing || !settings?.account}
+            onClick={() => void refresh()}
+          >
+            <RefreshCw size={14} className={refreshing ? 'spin' : undefined} />
+            {refreshing ? '刷新中' : '立即刷新'}
+          </Button>
         </div>
       </div>
-    </>
-  );
-  return (
-    <div className="app-shell">
-      <aside className="desktop-sidebar">{nav}</aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div className="mobile-menu">
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="打开产品导航">
-                  <Menu size={20} />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="mobile-sidebar">
-                <SheetTitle className="sr-only">产品导航</SheetTitle>
-                {nav}
-              </SheetContent>
-            </Sheet>
+      <main id="main-content" ref={main} tabIndex={-1}>
+        {error && (
+          <div role="alert" className="error-banner">
+            <CircleAlert size={17} />
+            <span>
+              {error}
+              {snapshot ? '。下方保留上次结果，尚未更新。' : ''}
+            </span>
           </div>
-          <div className="breadcrumb">
-            <span>工作空间</span>
-            <span>/</span>
-            <strong>
-              {location.pathname === '/settings'
-                ? 'Token 与设置'
-                : (products.find((p) => location.pathname.endsWith('/' + p.id))?.name ??
-                  '使用总览')}
-            </strong>
+        )}
+        {!!snapshot?.warnings.length && (
+          <div role="status" className="error-banner">
+            <CircleAlert size={17} />
+            <span>{snapshot.warnings.slice(0, 3).join('。')}</span>
           </div>
-          <div className="topbar-right">
-            {demo ? (
-              <span className="demo-label">演示数据 · 不保存</span>
-            ) : (
-              <span className="account-dot">
-                <span className="status-dot" />
-                {settings?.account?.name ?? '等待连接账户'}
-              </span>
-            )}
-            <a
-              href="https://dash.cloudflare.com/"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="打开 Cloudflare 控制台"
-            >
-              <ArrowUpRight size={18} />
-            </a>
-          </div>
-        </header>
-        <main id="main-content">
-          <div className="page-tools">
-            <div className="updated">
-              <span className={`status-dot ${refreshing ? 'pulse' : ''}`} />
-              {refreshing
-                ? '正在读取最新用量…'
-                : snapshot
-                  ? `最近更新 ${dateTime(snapshot.attemptedAt)}`
-                  : '连接你的 Cloudflare 账户'}
-            </div>
-            <Button
-              className="refresh-button"
-              disabled={refreshing || !settings?.account}
-              onClick={() => void refresh()}
-            >
-              <RefreshCw size={15} className={refreshing ? 'spin' : ''} />
-              <span>{refreshing ? '刷新中' : '立即刷新'}</span>
-            </Button>
-          </div>
-          {error ? (
-            <div role="alert" className="error-banner">
-              <AlertCircle size={17} />
-              <span>{error}。下方保留上次结果，尚未更新。</span>
-            </div>
-          ) : null}
-          {snapshot?.warnings.length ? (
-            <div role="status" className="error-banner">
-              <AlertCircle size={17} />
-              <span>{snapshot.warnings.slice(0, 3).join('；')}</span>
-            </div>
-          ) : null}
-          <Outlet />
-        </main>
-        <footer className="page-footer">
-          <span>
-            <ShieldCheck size={14} />
-            只读访问 · 仅打开与手动刷新
-          </span>
-          <span>USD · 北京时间（UTC+8）</span>
-        </footer>
-      </div>
+        )}
+        <Outlet
+          context={
+            {
+              selectedMetric,
+              setSelectedMetric,
+              usageView,
+              setUsageView,
+              usageGroup,
+              setUsageGroup,
+            } satisfies DashboardViewState
+          }
+        />
+      </main>
+      <footer className="page-footer">
+        <span>
+          <ShieldCheck size={14} /> 只读访问 · 仅打开与手动刷新
+        </span>
+        <span>
+          {import.meta.env.DEV ? '本地预览 · 尚未部署' : '云端服务 · 运行中'} · USD ·
+          北京时间（UTC+8）
+        </span>
+      </footer>
     </div>
   );
 }

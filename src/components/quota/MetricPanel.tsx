@@ -1,5 +1,4 @@
 import type { MetricView } from '../../../shared/dashboard';
-import { Link } from 'react-router-dom';
 import { QuotaWaffle } from './QuotaWaffle';
 import { AnimatedValue } from './AnimatedValue';
 import {
@@ -15,18 +14,8 @@ import {
   percentage,
 } from '../../lib/format';
 import { costParts } from '../../../worker/billing/calculate';
-import { ArrowUpRight, CircleAlert, ExternalLink } from 'lucide-react';
-export function MetricPanel({
-  view,
-  color,
-  compactMode = false,
-  label = view.definition.label,
-}: {
-  view: MetricView;
-  color?: string;
-  compactMode?: boolean;
-  label?: string;
-}) {
+import { CircleAlert, ExternalLink } from 'lucide-react';
+export function MetricPanel({ view, color }: { view: MetricView; color?: string }) {
   const d = view.definition,
     o = displayObservation(view),
     q = quotaFor(view),
@@ -35,42 +24,20 @@ export function MetricPanel({
   const costs = costParts(o, d.pricing);
   const status = statusLabel(view, q.level);
   const exceeded = q.excess !== null && Number(q.excess) > 0;
-  const inlineAlert =
-    compactMode && !unavailable && ['warning', 'danger', 'exceeded'].includes(q.level);
   return (
-    <article
-      className={`metric-panel ${compactMode ? 'compact-metric' : ''} ${q.level === 'exceeded' ? 'is-exceeded' : ''}`}
-      data-quota-level={q.level}
-    >
+    <article className="metric-panel" data-quota-level={q.level}>
       <div className="metric-panel-heading">
-        <h3>
-          {compactMode ? (
-            <Link className="metric-heading-link" to={'/products/' + d.productId}>
-              <span>{label}</span>
-              <ArrowUpRight size={12} />
-            </Link>
-          ) : (
-            label
-          )}
-        </h3>
-        {(!compactMode || (!inlineAlert && status !== '正常')) && (
-          <span key={status} className={`metric-status ${unavailable ? 'muted-status' : q.level}`}>
-            {status}
-          </span>
-        )}
+        <h3>{d.label}</h3>
+        <span key={status} className={`metric-status ${unavailable ? 'muted-status' : q.level}`}>
+          {status}
+        </span>
       </div>
       <div className="metric-main">
-        <QuotaWaffle quota={q} color={color} label={label} />
+        <QuotaWaffle quota={q} color={color} label={d.label} />
         <div className="metric-amount">
           <div className="metric-ratio">
             <AnimatedValue value={percentage(q.percent)} />
-            {inlineAlert ? (
-              <small className="metric-ratio-alert" key={status}>
-                {status}
-              </small>
-            ) : (
-              <small>{q.percent === null ? '比例未知' : '已使用'}</small>
-            )}
+            <small>{q.percent === null ? '比例未知' : '已使用'}</small>
           </div>
           <strong>
             <AnimatedValue value={compact(o.usage)} />
@@ -91,65 +58,61 @@ export function MetricPanel({
           <small>{included === undefined ? '' : d.unit}</small>
         </strong>
       </div>
-      {!compactMode ? (
+      <div className="metric-detail-row">
+        <span>
+          {o.coverage === 'partial'
+            ? '部分用量 / 包含'
+            : d.hardLimit
+              ? '当前 / 上限'
+              : '已用 / 包含'}
+        </span>
+        <span>
+          {number(o.usage)} / {number(included)} {d.unit}
+        </span>
+      </div>
+      <div className="metric-detail-row">
+        <span>{o.reportedCost !== undefined ? '已报告部分' : '超额费用估算'}</span>
+        <span>
+          {o.reportedCost !== undefined
+            ? money(o.reportedCost)
+            : costs.unpriced
+              ? '尚未计价'
+              : money(costs.estimated)}
+          {d.hardLimit ? ' · 硬性限制' : ''}
+        </span>
+      </div>
+      {o.reportedCost !== undefined && o.chargeCoverage === 'partial' ? (
         <>
           <div className="metric-detail-row">
-            <span>
-              {o.coverage === 'partial'
-                ? '部分用量 / 包含'
-                : d.hardLimit
-                  ? '当前 / 上限'
-                  : '已用 / 包含'}
-            </span>
-            <span>
-              {number(o.usage)} / {number(included)} {d.unit}
-            </span>
+            <span>尚未入账部分估算</span>
+            <span>{costs.unpriced ? '尚未计价' : money(costs.estimated)}</span>
           </div>
-          <div className="metric-detail-row">
-            <span>{o.reportedCost !== undefined ? '已报告部分' : '超额费用估算'}</span>
-            <span>
-              {o.reportedCost !== undefined
-                ? money(o.reportedCost)
-                : costs.unpriced
-                  ? '尚未计价'
-                  : money(costs.estimated)}
-              {d.hardLimit ? ' · 硬性限制' : ''}
-            </span>
-          </div>
-          {o.reportedCost !== undefined && o.chargeCoverage === 'partial' ? (
-            <>
-              <div className="metric-detail-row">
-                <span>尚未入账部分估算</span>
-                <span>{costs.unpriced ? '尚未计价' : money(costs.estimated)}</span>
-              </div>
-              <p className="pricing-note">
-                已入账至 {dateTime(o.chargeThrough)}；用量与金额更新时间不同。
-              </p>
-            </>
-          ) : null}
-          {o.period.start ? (
-            <div className="metric-detail-row">
-              <span>{periodLabel[d.period]} · 北京时间</span>
-              <span>
-                {date(o.period.start)} — {date(o.period.end)}
-              </span>
-            </div>
-          ) : null}
-          <div className="metric-detail-row">
-            <span>数据时间</span>
-            <span>{dateTime(o.at)}</span>
-          </div>
-          {o.rangeStart && o.period.start && new Date(o.rangeStart) > new Date(o.period.start) ? (
-            <p className="pricing-note">本套餐生效后统计：{dateTime(o.rangeStart)} 起</p>
-          ) : null}
-          {d.pricing ? (
-            <p className="pricing-note">
-              超出后 ${d.pricing.rate} / {compact(d.pricing.per)} {d.unit}
-              {d.pricing.roundUp ? '（向上进位）' : ''}
-              {d.pricing.roundNearest ? '（账期累计时长四舍五入）' : ''}
-            </p>
-          ) : null}
+          <p className="pricing-note">
+            已入账至 {dateTime(o.chargeThrough)}；用量与金额更新时间不同。
+          </p>
         </>
+      ) : null}
+      {o.period.start ? (
+        <div className="metric-detail-row">
+          <span>{periodLabel[d.period]} · 北京时间</span>
+          <span>
+            {date(o.period.start)} — {date(o.period.end)}
+          </span>
+        </div>
+      ) : null}
+      <div className="metric-detail-row">
+        <span>数据时间</span>
+        <span>{dateTime(o.at)}</span>
+      </div>
+      {o.rangeStart && o.period.start && new Date(o.rangeStart) > new Date(o.period.start) ? (
+        <p className="pricing-note">本套餐生效后统计：{dateTime(o.rangeStart)} 起</p>
+      ) : null}
+      {d.pricing ? (
+        <p className="pricing-note">
+          超出后 ${d.pricing.rate} / {compact(d.pricing.per)} {d.unit}
+          {d.pricing.roundUp ? '（向上进位）' : ''}
+          {d.pricing.roundNearest ? '（账期累计时长四舍五入）' : ''}
+        </p>
       ) : null}
       {view.current.message && unavailable ? (
         <p className="metric-message">
@@ -160,15 +123,13 @@ export function MetricPanel({
             : ''}
         </p>
       ) : null}
-      {!compactMode ? (
-        <div className="metric-source">
-          <span title={o.source}>来源 · {o.source.split('?')[0].split('/').at(-1)}</span>
-          <a href={d.source} target="_blank" rel="noreferrer">
-            口径
-            <ExternalLink size={11} />
-          </a>
-        </div>
-      ) : null}
+      <div className="metric-source">
+        <span title={o.source}>来源 · {o.source.split('?')[0].split('/').at(-1)}</span>
+        <a href={d.source} target="_blank" rel="noreferrer">
+          口径
+          <ExternalLink size={11} />
+        </a>
+      </div>
     </article>
   );
 }
