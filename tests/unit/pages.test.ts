@@ -101,6 +101,24 @@ describe('available data in the rendered dashboard', () => {
     expect(html).toContain('Workers 请求次数 0.92%');
     expect(html).toContain('stroke-dasharray="0.92 99.08"');
   });
+  it('keeps a distinct dial color for each featured metric even when a warning changes the ring order', () => {
+    const full = demoSnapshot('normal');
+    const colors = (html: string) =>
+      Object.fromEntries(
+        [
+          ...html.matchAll(
+            /class="arc-label"[^>]*title="([^"]+)"[^>]*--arc-series:(#[0-9a-f]{6})/g,
+          ),
+        ].map(([, metric, color]) => [metric, color]),
+      );
+    const normal = colors(render(full));
+    expect(Object.keys(normal)).toHaveLength(6);
+    expect(new Set(Object.values(normal)).size).toBe(6);
+    full.metrics.queues_standard_operations.current.usage = '1250000';
+    const reordered = colors(render(full));
+    expect(Object.keys(reordered)[0]).toBe('Queues 消息操作');
+    expect(reordered).toEqual(normal);
+  });
   it('selects measurable quotas when featured readings have only partial coverage', () => {
     const full = demoSnapshot('normal');
     for (const id of [

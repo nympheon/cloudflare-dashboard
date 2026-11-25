@@ -1,4 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { products } from '../../../shared/catalog';
 import type { DashboardViewState } from '../layout/Shell';
@@ -6,6 +7,24 @@ import { compact, dateTime, percentage, quantity } from '../../lib/format';
 import type { Reading } from '../../lib/readings';
 
 const names = new Map(products.map(({ id, name }) => [id, name]));
+const featuredColors = new Map([
+  ['worker_standard_request', '#506cb0'],
+  ['worker_standard_cpu_ms', '#287783'],
+  ['d1_rows_written', '#37785e'],
+  ['d1_rows_read', '#5e7532'],
+  ['r2_class_a_operations', '#745da5'],
+  ['queues_standard_operations', '#925986'],
+]);
+const palette = [...featuredColors.values()];
+
+function seriesColor(id: string) {
+  const featuredColor = featuredColors.get(id);
+  if (featuredColor !== undefined) return featuredColor;
+  // Keep the same color when an additional metric moves between rings.
+  let hash = 0;
+  for (const character of id) hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0;
+  return palette[hash % palette.length];
+}
 
 function titleFor(reading: Reading) {
   return [names.get(reading.definition.productId), reading.definition.label]
@@ -34,17 +53,19 @@ function QuotaArcs({
       // Each track spans three quarters of a circle, leaving room for its label.
       const path = `M 133 ${y} A ${radius} ${radius} 0 1 0 ${133 + radius} 133`;
       const percent = Math.min(100, Math.max(0, Number(reading.quota.percent)));
-      return { reading, y, path, percent };
+      const seriesStyle = { '--arc-series': seriesColor(reading.view.id) } as CSSProperties;
+      return { reading, y, path, percent, seriesStyle };
     });
   if (!rings.length) return null;
   return (
     <div className="quota-arcs" role="group" aria-label="核心额度刻度">
       <svg viewBox="0 0 365 270" aria-hidden="true">
-        {rings.map(({ reading, path, percent }) => (
+        {rings.map(({ reading, path, percent, seriesStyle }) => (
           <g
             key={reading.view.id}
             data-level={reading.quota.level}
             data-selected={reading.view.id === active}
+            style={seriesStyle}
             onClick={() => select(reading.view.id)}
           >
             <path className="arc-track" d={path} />
@@ -59,7 +80,7 @@ function QuotaArcs({
           </g>
         ))}
       </svg>
-      {rings.map(({ reading, y }) => {
+      {rings.map(({ reading, y, seriesStyle }) => {
         const id = reading.view.id;
         const percent = percentage(reading.quota.percent);
         return (
@@ -70,7 +91,7 @@ function QuotaArcs({
             aria-pressed={id === active}
             aria-label={titleFor(reading) + ' ' + percent}
             title={titleFor(reading)}
-            style={{ top: `${(y / 270) * 100}%` }}
+            style={{ top: `${(y / 270) * 100}%`, ...seriesStyle }}
             onClick={() => select(id)}
           >
             <span>{titleFor(reading)}</span>

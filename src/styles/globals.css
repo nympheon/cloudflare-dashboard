@@ -561,10 +561,10 @@ h3 {
   stroke: #e9edf7;
 }
 .arc-fill {
-  stroke: #7e8ec5;
+  stroke: var(--arc-series);
 }
 .quota-arcs g[data-selected='true'] .arc-fill {
-  stroke: var(--blue);
+  stroke-width: 12;
 }
 .quota-arcs g[data-level='warning'] .arc-fill {
   stroke: #b9602b;
@@ -596,6 +596,9 @@ h3 {
 .arc-label b {
   flex-shrink: 0;
   font-weight: 650;
+}
+.arc-label b[data-level='normal'] {
+  color: var(--arc-series);
 }
 .arc-label:is(:hover, [aria-pressed='true']) {
   color: var(--blue);
